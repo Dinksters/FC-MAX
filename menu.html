@@ -7,46 +7,54 @@
     <style>
         body { margin: 0; font-family: 'Arial', sans-serif; background-color: #1a1a2e; color: white; display: flex; flex-direction: column; align-items: center; }
         
+        /* Navbar */
         .navbar { width: 100%; background-color: #16213e; padding: 15px 20px; display: flex; justify-content: space-between; box-sizing: border-box; border-bottom: 2px solid #e94560; }
         .navbar h1 { margin: 0; font-size: 24px; letter-spacing: 2px; }
+        .nav-right { display: flex; align-items: center; gap: 20px; }
+        .play-btn { background-color: #228b22; color: white; text-decoration: none; padding: 10px 20px; font-weight: bold; border-radius: 5px; border: 2px solid white; cursor: pointer; }
         .coins { font-weight: bold; color: #ffd700; font-size: 18px; }
 
-        /* Tab Navigation */
+        /* Tabs */
         .tabs { margin-top: 20px; display: flex; gap: 20px; }
         .tab-btn { background: #0f3460; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 5px; cursor: pointer; }
         .tab-btn.active { background: #e94560; font-weight: bold; }
 
-        .dashboard { margin-top: 30px; text-align: center; width: 100%; max-width: 900px; }
+        .dashboard { margin-top: 30px; text-align: center; width: 100%; max-width: 1000px; }
         .section { display: none; }
         .section.active { display: block; }
 
-        .open-pack-btn { background: linear-gradient(45deg, #e94560, #ff2a54); color: white; border: none; padding: 15px 40px; font-size: 20px; font-weight: bold; border-radius: 8px; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 15px rgba(233, 69, 96, 0.4); }
-        .open-pack-btn:active { transform: scale(0.95); }
+        /* Store */
+        .open-pack-btn { background: linear-gradient(45deg, #e94560, #ff2a54); color: white; border: none; padding: 15px 40px; font-size: 20px; font-weight: bold; border-radius: 8px; cursor: pointer; text-transform: uppercase; margin-bottom: 30px; }
+        #pack-result { min-height: 350px; display: flex; justify-content: center; }
 
-        #pack-result { margin-top: 40px; min-height: 350px; display: flex; justify-content: center; align-items: center; }
-        
-        /* Grid for My Club */
-        #club-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; padding: 20px; justify-items: center; }
-
-        .player-card { width: 200px; height: 290px; border-radius: 10px; padding: 15px; box-sizing: border-box; box-shadow: 0 10px 30px rgba(0,0,0,0.8); display: flex; flex-direction: column; color: #111; position: relative; }
+        /* Cards */
+        #club-grid { display: flex; flex-wrap: wrap; gap: 15px; padding: 20px; justify-content: center; }
+        .player-card { width: 150px; height: 220px; border-radius: 8px; padding: 10px; box-sizing: border-box; box-shadow: 0 5px 15px rgba(0,0,0,0.8); display: flex; flex-direction: column; color: #111; cursor: grab; user-select: none; }
+        .player-card:active { cursor: grabbing; }
         .gold { background: linear-gradient(135deg, #f6d365, #fda085); border: 2px solid #fff; }
         .silver { background: linear-gradient(135deg, #e0c3fc, #8ec5fc); border: 2px solid #fff; }
         .bronze { background: linear-gradient(135deg, #c79081, #dfa579); border: 2px solid #555; }
-        .rating { font-size: 32px; font-weight: bold; }
-        .position { font-size: 14px; font-weight: bold; }
-        .name { font-size: 20px; font-weight: bold; text-align: center; border-bottom: 2px solid rgba(0,0,0,0.2); margin: 10px 0; padding-bottom: 5px; text-transform: uppercase; }
-        .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 12px; font-weight: bold; text-align: center; }
+        .rating { font-size: 24px; font-weight: bold; }
+        .position { font-size: 12px; font-weight: bold; }
+        .name { font-size: 14px; font-weight: bold; text-align: center; border-bottom: 2px solid rgba(0,0,0,0.2); margin: 5px 0; text-transform: uppercase; }
+        .stats { display: grid; grid-template-columns: 1fr 1fr; font-size: 10px; font-weight: bold; text-align: center; }
+
+        /* Squad Pitch */
+        .tactics-board { background-color: #228b22; width: 100%; max-width: 800px; height: 500px; margin: 0 auto; border: 5px solid white; position: relative; border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; justify-content: space-around; }
+        .pitch-line-center { position: absolute; top: 50%; width: 100%; height: 2px; background: white; }
+        .pitch-circle { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100px; height: 100px; border: 2px solid white; border-radius: 50%; }
+        
+        .squad-row { display: flex; justify-content: space-evenly; width: 100%; z-index: 10; }
+        .slot { width: 150px; height: 220px; border: 2px dashed rgba(255,255,255,0.5); border-radius: 8px; background: rgba(0,0,0,0.3); display: flex; justify-content: center; align-items: center; color: rgba(255,255,255,0.5); font-weight: bold; }
+        .slot.hover { background: rgba(255,255,255,0.2); border-color: white; }
     </style>
 </head>
 <body>
+
     <div class="navbar">
         <h1>FC MAXER</h1>
-        <div style="display: flex; align-items: center; gap: 20px;">
-            
-            <a href="index.html" style="background-color: #228b22; color: white; text-decoration: none; padding: 10px 20px; font-weight: bold; border-radius: 5px; border: 2px solid white; cursor: pointer;">
-                ⚽ PLAY MATCH
-            </a>
-            
+        <div class="nav-right">
+            <a href="index.html" class="play-btn">⚽ PLAY MATCH</a>
             <div class="coins">Coins: <span id="coin-balance">500</span></div>
         </div>
     </div>
@@ -54,116 +62,133 @@
     <div class="tabs">
         <button class="tab-btn active" onclick="switchTab('store')">Store</button>
         <button class="tab-btn" onclick="switchTab('club')">My Club</button>
+        <button class="tab-btn" onclick="switchTab('squad')">Squad Builder</button>
     </div>
 
     <div class="dashboard">
         <div id="store" class="section active">
             <h2>Pack Store</h2>
-            <p>Cost: 100 Coins per Pack</p>
-            <button class="open-pack-btn" onclick="openPack()">Open Standard Pack</button>
+            <button class="open-pack-btn" onclick="openPack()">Open Standard Pack (100 Coins)</button>
             <div id="pack-result"></div>
         </div>
 
         <div id="club" class="section">
-            <h2>My Club Inventory</h2>
-            <div id="club-grid"></div>
+            <h2>Club Roster</h2>
+            <p>Drag players from here to the Squad Builder!</p>
+            <div id="club-grid" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+        </div>
+
+        <div id="squad" class="section">
+            <h2>Active Lineup (4-3-3)</h2>
+            <div class="tactics-board">
+                <div class="pitch-line-center"></div>
+                <div class="pitch-circle"></div>
+                
+                <div class="squad-row">
+                    <div class="slot" ondrop="drop(event)" ondragover="allowDrop(event)">LW</div>
+                    <div class="slot" ondrop="drop(event)" ondragover="allowDrop(event)">ST</div>
+                    <div class="slot" ondrop="drop(event)" ondragover="allowDrop(event)">RW</div>
+                </div>
+                
+                <div class="squad-row">
+                    <div class="slot" ondrop="drop(event)" ondragover="allowDrop(event)">CM</div>
+                    <div class="slot" ondrop="drop(event)" ondragover="allowDrop(event)">CM</div>
+                    <div class="slot" ondrop="drop(event)" ondragover="allowDrop(event)">CM</div>
+                </div>
+
+                <div class="squad-row">
+                    <div class="slot" ondrop="drop(event)" ondragover="allowDrop(event)">CB</div>
+                    <div class="slot" ondrop="drop(event)" ondragover="allowDrop(event)">GK</div>
+                    <div class="slot" ondrop="drop(event)" ondragover="allowDrop(event)">CB</div>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        const playerDatabase = [
-            { id: 1, name: "Mbappe", rating: 91, pos: "ST", tier: "gold", stats: { pac: 97, sho: 89, pas: 80, dri: 92 } },
-            { id: 2, name: "Haaland", rating: 91, pos: "ST", tier: "gold", stats: { pac: 89, sho: 93, pas: 66, dri: 80 } },
-            { id: 3, name: "Bellingham", rating: 86, pos: "CM", tier: "gold", stats: { pac: 82, sho: 75, pas: 83, dri: 85 } },
-            { id: 4, name: "Mitoma", rating: 80, pos: "LM", tier: "silver", stats: { pac: 84, sho: 73, pas: 74, dri: 82 } },
-            { id: 5, name: "Garnacho", rating: 79, pos: "LW", tier: "silver", stats: { pac: 86, sho: 72, pas: 68, dri: 81 } },
-            { id: 6, name: "Mainoo", rating: 76, pos: "CDM", tier: "silver", stats: { pac: 72, sho: 60, pas: 75, dri: 78 } },
-            { id: 7, name: "Rookie Striker", rating: 64, pos: "ST", tier: "bronze", stats: { pac: 65, sho: 60, pas: 55, dri: 58 } },
-            { id: 8, name: "Local Defender", rating: 62, pos: "CB", tier: "bronze", stats: { pac: 55, sho: 30, pas: 45, dri: 40 } },
-            { id: 9, name: "Reserve Keeper", rating: 60, pos: "GK", tier: "bronze", stats: { pac: 30, sho: 20, pas: 40, dri: 30 } }
+        const db = [
+            { id: "p1", name: "Mbappe", rating: 91, pos: "ST", tier: "gold", pac: 97, sho: 89, pas: 80, dri: 92 },
+            { id: "p2", name: "Haaland", rating: 91, pos: "ST", tier: "gold", pac: 89, sho: 93, pas: 66, dri: 80 },
+            { id: "p3", name: "Vinicius", rating: 89, pos: "LW", tier: "gold", pac: 95, sho: 82, pas: 81, dri: 90 },
+            { id: "p4", name: "Mitoma", rating: 80, pos: "LW", tier: "silver", pac: 84, sho: 73, pas: 74, dri: 82 },
+            { id: "p5", name: "Mainoo", rating: 76, pos: "CM", tier: "silver", pac: 72, sho: 60, pas: 75, dri: 78 },
+            { id: "p6", name: "Rookie", rating: 64, pos: "CB", tier: "bronze", pac: 65, sho: 40, pas: 55, dri: 50 },
+            { id: "p7", name: "Keeper", rating: 60, pos: "GK", tier: "bronze", pac: 30, sho: 20, pas: 40, dri: 30 }
         ];
 
-        // --- LOCAL STORAGE LOGIC ---
-        // Load coins from memory, or default to 500
-        let coins = localStorage.getItem('maxer_coins') ? parseInt(localStorage.getItem('maxer_coins')) : 500;
+        let coins = localStorage.getItem('coins') ? parseInt(localStorage.getItem('coins')) : 500;
+        let club = localStorage.getItem('club') ? JSON.parse(localStorage.getItem('club')) : [];
+        let cardIdCounter = club.length; // Unique ID for duplicate cards
+        
         document.getElementById('coin-balance').innerText = coins;
-
-        // Load inventory array from memory, or default to empty array
-        let myClub = localStorage.getItem('maxer_club') ? JSON.parse(localStorage.getItem('maxer_club')) : [];
 
         function switchTab(tabId) {
             document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            
             document.getElementById(tabId).classList.add('active');
             event.target.classList.add('active');
-
             if (tabId === 'club') renderClub();
         }
 
         function openPack() {
-            const packCost = 100;
-            if (coins < packCost) {
-                alert("Not enough coins! Play matches to earn more.");
-                return;
-            }
-
-            // Deduct and Save Coins
-            coins -= packCost;
-            localStorage.setItem('maxer_coins', coins);
+            if (coins < 100) return alert("Not enough coins!");
+            coins -= 100;
+            localStorage.setItem('coins', coins);
             document.getElementById('coin-balance').innerText = coins;
 
-            const roll = Math.floor(Math.random() * 100) + 1;
-            let pulledPlayer;
-
-            if (roll <= 10) {
-                const golds = playerDatabase.filter(p => p.tier === 'gold');
-                pulledPlayer = golds[Math.floor(Math.random() * golds.length)];
-            } else if (roll <= 40) {
-                const silvers = playerDatabase.filter(p => p.tier === 'silver');
-                pulledPlayer = silvers[Math.floor(Math.random() * silvers.length)];
-            } else {
-                const bronzes = playerDatabase.filter(p => p.tier === 'bronze');
-                pulledPlayer = bronzes[Math.floor(Math.random() * bronzes.length)];
-            }
-
-            // Add player to Club and Save to Memory
-            myClub.push(pulledPlayer);
-            localStorage.setItem('maxer_club', JSON.stringify(myClub));
-
-            // Display just the pulled card
-            document.getElementById('pack-result').innerHTML = createCardHTML(pulledPlayer);
+            const roll = Math.random() * 100;
+            let p;
+            if (roll <= 15) p = db.filter(x => x.tier === 'gold');
+            else if (roll <= 45) p = db.filter(x => x.tier === 'silver');
+            else p = db.filter(x => x.tier === 'bronze');
+            
+            const pulled = Object.assign({}, p[Math.floor(Math.random() * p.length)]);
+            pulled.uid = "card_" + cardIdCounter++; // Unique ID required for dragging
+            
+            club.push(pulled);
+            localStorage.setItem('club', JSON.stringify(club));
+            document.getElementById('pack-result').innerHTML = createHTML(pulled);
         }
 
         function renderClub() {
             const grid = document.getElementById('club-grid');
-            grid.innerHTML = ''; // Clear grid
-            
-            if (myClub.length === 0) {
-                grid.innerHTML = "<p>Your club is empty. Go open some packs!</p>";
-                return;
-            }
-
-            // Loop through saved players and draw them
-            myClub.forEach(player => {
-                grid.innerHTML += createCardHTML(player);
-            });
+            grid.innerHTML = '';
+            club.forEach(p => grid.innerHTML += createHTML(p));
         }
 
-        function createCardHTML(player) {
+        function createHTML(p) {
             return `
-                <div class="player-card ${player.tier}">
-                    <div class="rating">${player.rating}</div>
-                    <div class="position">${player.pos}</div>
-                    <div class="name">${player.name}</div>
+                <div class="player-card ${p.tier}" id="${p.uid}" draggable="true" ondragstart="drag(event)">
+                    <div class="rating">${p.rating}</div>
+                    <div class="position">${p.pos}</div>
+                    <div class="name">${p.name}</div>
                     <div class="stats">
-                        <div>PAC: ${player.stats.pac}</div>
-                        <div>DRI: ${player.stats.dri}</div>
-                        <div>SHO: ${player.stats.sho}</div>
-                        <div>PAS: ${player.stats.pas}</div>
+                        <div>PAC: ${p.pac}</div><div>DRI: ${p.dri}</div>
+                        <div>SHO: ${p.sho}</div><div>PAS: ${p.pas}</div>
                     </div>
                 </div>
             `;
+        }
+
+        // --- DRAG AND DROP API ---
+        function allowDrop(ev) { ev.preventDefault(); }
+        
+        function drag(ev) { ev.dataTransfer.setData("text", ev.target.id); }
+        
+        function drop(ev) {
+            ev.preventDefault();
+            const data = ev.dataTransfer.getData("text");
+            const draggedCard = document.getElementById(data);
+            
+            // If dropping into a slot (pitch)
+            if (ev.target.classList.contains('slot')) {
+                ev.target.innerHTML = ''; // Clear text like "CM"
+                ev.target.appendChild(draggedCard);
+            } 
+            // If dropping back into the club grid
+            else if (ev.target.id === 'club-grid') {
+                ev.target.appendChild(draggedCard);
+            }
         }
     </script>
 </body>
