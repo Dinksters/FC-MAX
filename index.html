@@ -3,35 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FC Maxer - Phase 1</title>
+    <title>FC Maxer - Phase 2 Live</title>
     <style>
-        body { 
-            margin: 0; 
-            overflow: hidden; 
-            background-color: #111; 
-            font-family: 'Arial', sans-serif;
-        }
+        body { margin: 0; overflow: hidden; background-color: #111; font-family: 'Arial', sans-serif; }
         #scoreboard {
-            position: absolute; 
-            top: 20px; 
-            width: 100%; 
-            text-align: center; 
-            color: white; 
-            font-size: 36px; 
-            font-weight: bold; 
-            text-shadow: 2px 2px 4px #000; 
-            pointer-events: none; /* Lets clicks pass through to the game */
+            position: absolute; top: 20px; width: 100%; text-align: center; 
+            color: white; font-size: 36px; font-weight: bold; 
+            text-shadow: 2px 2px 4px #000; pointer-events: none;
+        }
+        .nav-btn {
+            position: absolute; top: 20px; right: 20px; 
+            background-color: #e94560; color: white; text-decoration: none; 
+            padding: 10px 20px; font-weight: bold; border-radius: 5px; z-index: 100;
+            border: 2px solid white;
         }
     </style>
 </head>
 <body>
     <div id="scoreboard">HOME 0 - 0 AWAY</div>
-
-    <a href="menu.html" style="position: absolute; top: 20px; right: 20px; background-color: #e94560; color: white; text-decoration: none; padding: 10px 20px; font-family: 'Arial', sans-serif; font-weight: bold; border-radius: 5px; z-index: 100;">Ultimate Team</a>
+    <a href="menu.html" class="nav-btn">Back to Club</a>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
-    
     <script src="game.js"></script>
 </body>
 </html>
