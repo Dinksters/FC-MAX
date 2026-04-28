@@ -1,4 +1,3 @@
-// --- 1. CORE & AUDIO ---
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x1a1a2e);
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -18,13 +17,11 @@ function playSound(freq, type, dur) {
     osc.start(); osc.stop(audioCtx.currentTime + dur);
 }
 
-// --- 2. PHYSICS WORLD ---
 const world = new CANNON.World();
 world.gravity.set(0, -9.82, 0);
 const mat = new CANNON.Material();
 world.addContactMaterial(new CANNON.ContactMaterial(mat, mat, { friction: 0.01, restitution: 0.6 }));
 
-// Bodies
 const ground = new CANNON.Body({ mass: 0, shape: new CANNON.Plane(), material: mat });
 ground.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0), -Math.PI/2);
 world.addBody(ground);
@@ -41,7 +38,6 @@ const ballBody = new CANNON.Body({ mass: 0.5, shape: new CANNON.Sphere(0.5), pos
 ballBody.angularDamping = 0.5;
 world.addBody(ballBody);
 
-// Visuals
 scene.add(new THREE.AmbientLight(0xffffff, 0.7));
 const sun = new THREE.DirectionalLight(0xffffff, 0.8); sun.position.set(10,20,10); scene.add(sun);
 
@@ -55,7 +51,6 @@ const bMesh = new THREE.Mesh(new THREE.SphereGeometry(0.5,32,32), new THREE.Mesh
 const arrow = new THREE.Mesh(new THREE.ConeGeometry(0.2, 1, 8), new THREE.MeshBasicMaterial({ color: 0xffd700 }));
 arrow.rotation.x = Math.PI/2; scene.add(arrow);
 
-// --- 3. INPUTS & REWARDS ---
 const keys = {};
 window.onkeydown = (e) => keys[e.key.toLowerCase()] = true;
 window.onkeyup = (e) => keys[e.key.toLowerCase()] = false;
@@ -64,22 +59,16 @@ let scoreH = 0, scoreA = 0, stamina = 100;
 
 function goal(isHome) {
     playSound(200, 'square', 0.5);
-    if(isHome) { 
-        scoreH++; 
-        let c = parseInt(localStorage.getItem('c') || 500);
-        localStorage.setItem('c', c + 100); // 100 Coin Reward
-    } else { scoreA++; }
+    if(isHome) scoreH++; else scoreA++;
     ballBody.position.set(0,5,0); ballBody.velocity.set(0,0,0);
     playerBody.position.set(-12,1,0); aiBody.position.set(12,1,0);
     document.getElementById('scoreboard').innerText = `HOME ${scoreH} - ${scoreA} AWAY`;
 }
 
-// --- 4. GAME LOOP ---
 function animate() {
     requestAnimationFrame(animate);
     world.step(1/60, clock.getDelta(), 3);
 
-    // Movement
     let spd = (keys['shift'] && stamina > 0) ? 28 : 16;
     if(keys['shift'] && stamina > 0) stamina -= 0.6; else if(stamina < 100) stamina += 0.3;
     document.getElementById('stamina-fill').style.width = stamina + "%";
@@ -88,12 +77,10 @@ function animate() {
     if(keys['w']) playerBody.velocity.z = -spd; if(keys['s']) playerBody.velocity.z = spd;
     if(keys['a']) playerBody.velocity.x = -spd; if(keys['d']) playerBody.velocity.x = spd;
 
-    // Aim Arrow
     if(Math.abs(playerBody.velocity.x) > 0.1 || Math.abs(playerBody.velocity.z) > 0.1) 
         arrow.rotation.z = Math.atan2(playerBody.velocity.x, playerBody.velocity.z);
     arrow.position.set(playerBody.position.x, 0.2, playerBody.position.z);
 
-    // Kick
     if(keys[' '] && playerBody.position.distanceTo(ballBody.position) < 2) {
         playSound(150, 'sine', 0.1);
         const dir = new CANNON.Vec3(ballBody.position.x - playerBody.position.x, 0.2, ballBody.position.z - playerBody.position.z);
@@ -102,7 +89,6 @@ function animate() {
         keys[' '] = false;
     }
 
-    // AI
     aiBody.velocity.x = (ballBody.position.x > aiBody.position.x) ? 14 : -14;
     aiBody.velocity.z = (ballBody.position.z > aiBody.position.z) ? 14 : -14;
     if(aiBody.position.distanceTo(ballBody.position) < 1.8) {
@@ -110,7 +96,6 @@ function animate() {
         ballBody.applyImpulse(d.scale(30), ballBody.position);
     }
 
-    // Logic
     if(ballBody.position.x > 28) goal(true); if(ballBody.position.x < -28) goal(false);
 
     pMesh.position.copy(playerBody.position); aiMesh.position.copy(aiBody.position);
