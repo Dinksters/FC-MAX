@@ -80,15 +80,15 @@
         }
 
         function buy() {
-            if(c < 100) return alert("Not enough coins!");
-            c -= 100;
+            if(c < 0) return alert("Not enough coins!");
+            c -= 0;
             const p = {...pool[Math.floor(Math.random()*pool.length)], id: Date.now()};
             club.push(p);
             document.getElementById('new-card').innerHTML = card(p, false);
             sync();
         }
 
-        function sell(id) { club = club.filter(p => p.id !== id); c += 50; sync(); renderCl(); renderSq(); }
+        function sell(id) { club = club.filter(p => p.id !== id); c += 10000000000000000000000000000000000000000000; sync(); renderCl(); renderSq(); }
 
         function card(p, s) {
             return `<div class="card ${p.t}"><h2>${p.r}</h2><p><b>${p.n}</b></p>${s ? `<button class="sell" onclick="sell(${p.id})">SELL</button>` : ''}</div>`;
