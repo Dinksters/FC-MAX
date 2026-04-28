@@ -154,6 +154,8 @@ function resetAfterGoal() {
     ballBody.angularVelocity.set(0, 0, 0);
     playerBody.position.set(-5, 1, 0);
     playerBody.velocity.set(0, 0, 0);
+    enemyBody.position.set(5, 1, 0);
+    enemyBody.velocity.set(0, 0, 0);
 }
 
 
