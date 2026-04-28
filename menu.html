@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FC Maxer - Ultimate Team</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Arial', sans-serif;
+            background-color: #1a1a2e;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Top Navigation Bar */
+        .navbar {
+            width: 100%;
+            background-color: #16213e;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            box-sizing: border-box;
+            border-bottom: 2px solid #e94560;
+        }
+        .navbar h1 { margin: 0; font-size: 24px; letter-spacing: 2px; }
+        .coins { font-weight: bold; color: #ffd700; font-size: 18px; }
+
+        /* Main Content Area */
+        .dashboard {
+            margin-top: 50px;
+            text-align: center;
+        }
+
+        /* Pack Opening Button */
+        .open-pack-btn {
+            background: linear-gradient(45deg, #e94560, #ff2a54);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            text-transform: uppercase;
+            box-shadow: 0 4px 15px rgba(233, 69, 96, 0.4);
+            transition: transform 0.1s;
+        }
+        .open-pack-btn:active { transform: scale(0.95); }
+        .open-pack-btn:disabled { background: #555; cursor: not-allowed; box-shadow: none; }
+
+        /* The Card Display Area */
+        #pack-result {
+            margin-top: 40px;
+            min-height: 350px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Player Card Styling */
+        .player-card {
+            width: 220px;
+            height: 320px;
+            border-radius: 10px;
+            padding: 15px;
+            box-sizing: border-box;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            display: flex;
+            flex-direction: column;
+            color: #111;
+            position: relative;
+            animation: dropIn 0.5s ease-out forwards;
+        }
+
+        @keyframes dropIn {
+            0% { transform: scale(0) translateY(-100px); opacity: 0; }
+            100% { transform: scale(1) translateY(0); opacity: 1; }
+        }
+
+        /* Card Tiers (Colors) */
+        .gold { background: linear-gradient(135deg, #f6d365 0%, #fda085 100%); border: 2px solid #fff; }
+        .silver { background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%); border: 2px solid #fff; }
+        .bronze { background: linear-gradient(135deg, #c79081 0%, #dfa579 100%); border: 2px solid #555; }
+
+        .rating { font-size: 36px; font-weight: bold; }
+        .position { font-size: 16px; font-weight: bold; }
+        .name { font-size: 22px; font-weight: bold; text-align: center; border-bottom: 2px solid rgba(0,0,0,0.2); margin: 15px 0 10px; padding-bottom: 5px; text-transform: uppercase; }
+        .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 14px; font-weight: bold; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <div class="navbar">
+        <h1>FC MAXER</h1>
+        <div class="coins">Coins: <span id="coin-balance">500</span></div>
+    </div>
+
+    <div class="dashboard">
+        <h2>Store</h2>
+        <p>Cost: 100 Coins per Pack</p>
+        <button class="open-pack-btn" id="open-btn" onclick="openPack()">Open Standard Pack</button>
+        
+        <div id="pack-result">
+            </div>
+    </div>
+
+    <script>
+        // 1. The Player Database (Simulating your future SQLite database)
+        const playerDatabase = [
+            { name: "Mbappe", rating: 91, pos: "ST", tier: "gold", stats: { pac: 97, sho: 89, pas: 80, dri: 92 } },
+            { name: "Haaland", rating: 91, pos: "ST", tier: "gold", stats: { pac: 89, sho: 93, pas: 66, dri: 80 } },
+            { name: "Bellingham", rating: 86, pos: "CM", tier: "gold", stats: { pac: 82, sho: 75, pas: 83, dri: 85 } },
+            { name: "Mitoma", rating: 80, pos: "LM", tier: "silver", stats: { pac: 84, sho: 73, pas: 74, dri: 82 } },
+            { name: "Garnacho", rating: 79, pos: "LW", tier: "silver", stats: { pac: 86, sho: 72, pas: 68, dri: 81 } },
+            { name: "Mainoo", rating: 76, pos: "CDM", tier: "silver", stats: { pac: 72, sho: 60, pas: 75, dri: 78 } },
+            { name: "Rookie Striker", rating: 64, pos: "ST", tier: "bronze", stats: { pac: 65, sho: 60, pas: 55, dri: 58 } },
+            { name: "Local Defender", rating: 62, pos: "CB", tier: "bronze", stats: { pac: 55, sho: 30, pas: 45, dri: 40 } },
+            { name: "Reserve Keeper", rating: 60, pos: "GK", tier: "bronze", stats: { pac: 30, sho: 20, pas: 40, dri: 30 } }
+        ];
+
+        // Player's Virtual Wallet
+        let coins = 500;
+        const packCost = 100;
+
+        // 2. The Pack Opening Engine
+        function openPack() {
+            if (coins < packCost) {
+                alert("Not enough coins! Play matches to earn more.");
+                return;
+            }
+
+            // Deduct coins and update UI
+            coins -= packCost;
+            document.getElementById('coin-balance').innerText = coins;
+
+            // Generate a random number between 1 and 100 for weighted probabilities
+            const roll = Math.floor(Math.random() * 100) + 1;
+            let pulledPlayer;
+
+            // 10% chance for Gold, 30% for Silver, 60% for Bronze
+            if (roll <= 10) {
+                const golds = playerDatabase.filter(p => p.tier === 'gold');
+                pulledPlayer = golds[Math.floor(Math.random() * golds.length)];
+            } else if (roll <= 40) {
+                const silvers = playerDatabase.filter(p => p.tier === 'silver');
+                pulledPlayer = silvers[Math.floor(Math.random() * silvers.length)];
+            } else {
+                const bronzes = playerDatabase.filter(p => p.tier === 'bronze');
+                pulledPlayer = bronzes[Math.floor(Math.random() * bronzes.length)];
+            }
+
+            renderCard(pulledPlayer);
+        }
+
+        // 3. Display the Card in HTML
+        function renderCard(player) {
+            const container = document.getElementById('pack-result');
+            
+            // Clear previous card
+            container.innerHTML = '';
+
+            // Build the card HTML
+            const cardHTML = `
+                <div class="player-card ${player.tier}">
+                    <div class="rating">${player.rating}</div>
+                    <div class="position">${player.pos}</div>
+                    <div class="name">${player.name}</div>
+                    <div class="stats">
+                        <div>PAC: ${player.stats.pac}</div>
+                        <div>DRI: ${player.stats.dri}</div>
+                        <div>SHO: ${player.stats.sho}</div>
+                        <div>PAS: ${player.stats.pas}</div>
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = cardHTML;
+        }
+    </script>
+</body>
+</html>
