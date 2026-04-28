@@ -1,256 +1,109 @@
-// ==========================================
-// 1. GRAPHICS SETUP (Three.js)
-// ==========================================
+// 1. ENGINE SETUP
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87CEEB); // Sky blue
+scene.background = new THREE.Color(0x87CEEB);
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
+const clock = new THREE.Clock();
 
-// Visual Pitch
-const pitchGeo = new THREE.PlaneGeometry(50, 30);
-const pitchMat = new THREE.MeshBasicMaterial({ color: 0x228B22, side: THREE.DoubleSide });
-const pitchMesh = new THREE.Mesh(pitchGeo, pitchMat);
-pitchMesh.rotation.x = Math.PI / 2;
-scene.add(pitchMesh);
-
-// Visual Player
-const playerGeo = new THREE.BoxGeometry(1, 2, 1);
-const playerMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-const playerMesh = new THREE.Mesh(playerGeo, playerMat);
-scene.add(playerMesh);
-
-// Visual Ball
-const ballGeo = new THREE.SphereGeometry(0.5, 32, 32);
-const ballMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-const ballMesh = new THREE.Mesh(ballGeo, ballMat);
-scene.add(ballMesh);
-
-
-// ==========================================
-// 2. PHYSICS SETUP (Cannon.js)
-// ==========================================
+// 2. PHYSICS WORLD
 const world = new CANNON.World();
-world.gravity.set(0, -9.82, 0); // Earth gravity
+world.gravity.set(0, -9.82, 0);
 
-// Physics Materials for Bouncing
-const defaultMaterial = new CANNON.Material();
-const wallMaterial = new CANNON.Material();
+const slipperyMat = new CANNON.Material();
+const contactMat = new CANNON.ContactMaterial(slipperyMat, slipperyMat, { friction: 0.01, restitution: 0.5 });
+world.addContactMaterial(contactMat);
 
-const ballContactMaterial = new CANNON.ContactMaterial(defaultMaterial, defaultMaterial, {
-    friction: 0.4,
-    restitution: 0.7 // Ball bounce on grass
-});
-world.addContactMaterial(ballContactMaterial);
-
-const wallContactMaterial = new CANNON.ContactMaterial(defaultMaterial, wallMaterial, {
-    friction: 0.0,
-    restitution: 0.5 // Ball bounce off walls
-});
-world.addContactMaterial(wallContactMaterial);
-
-// Physics Pitch
-const groundBody = new CANNON.Body({ mass: 0, shape: new CANNON.Plane(), material: defaultMaterial });
+// Pitch
+const groundBody = new CANNON.Body({ mass: 0, shape: new CANNON.Plane(), material: slipperyMat });
 groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
 world.addBody(groundBody);
+const pitchMesh = new THREE.Mesh(new THREE.PlaneGeometry(50, 30), new THREE.MeshBasicMaterial({ color: 0x228B22 }));
+pitchMesh.rotation.x = -Math.PI / 2;
+scene.add(pitchMesh);
 
-// Physics Player
-const playerBody = new CANNON.Body({
-    mass: 75, 
-    shape: new CANNON.Box(new CANNON.Vec3(0.5, 1, 0.5)),
-    position: new CANNON.Vec3(-5, 1, 0),
-    material: defaultMaterial
-});
-playerBody.fixedRotation = true; 
-playerBody.updateMassProperties();
+// Player (Red)
+const playerBody = new CANNON.Body({ mass: 75, shape: new CANNON.Box(new CANNON.Vec3(0.5, 1, 0.5)), position: new CANNON.Vec3(-10, 1, 0), material: slipperyMat });
+playerBody.fixedRotation = true;
+playerBody.linearDamping = 0.5;
 world.addBody(playerBody);
+const playerMesh = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
+scene.add(playerMesh);
 
-// --- AI OPPONENT VISUAL & PHYSICS ---
-const enemyGeo = new THREE.BoxGeometry(1, 2, 1);
-const enemyMat = new THREE.MeshBasicMaterial({ color: 0x0000ff }); // Blue kit
-const enemyMesh = new THREE.Mesh(enemyGeo, enemyMat);
+// AI Bot (Blue)
+const enemyBody = new CANNON.Body({ mass: 75, shape: new CANNON.Box(new CANNON.Vec3(0.5, 1, 0.5)), position: new CANNON.Vec3(10, 1, 0), material: slipperyMat });
+enemyBody.fixedRotation = true;
+enemyBody.linearDamping = 0.5;
+world.addBody(enemyBody);
+const enemyMesh = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshBasicMaterial({ color: 0x0000ff }));
 scene.add(enemyMesh);
 
-const enemyBody = new CANNON.Body({
-    mass: 75,
-    shape: new CANNON.Box(new CANNON.Vec3(0.5, 1, 0.5)),
-    position: new CANNON.Vec3(5, 1, 0), // Spawns on the Away side
-    material: defaultMaterial
-});
-enemyBody.fixedRotation = true;
-enemyBody.updateMassProperties();
-world.addBody(enemyBody);
-
-// Physics Ball
-const ballBody = new CANNON.Body({
-    mass: 0.43, 
-    shape: new CANNON.Sphere(0.5),
-    position: new CANNON.Vec3(0, 5, 0),
-    material: defaultMaterial
-});
+// Ball
+const ballBody = new CANNON.Body({ mass: 0.43, shape: new CANNON.Sphere(0.5), position: new CANNON.Vec3(0, 5, 0), material: slipperyMat });
 world.addBody(ballBody);
+const ballMesh = new THREE.Mesh(new THREE.SphereGeometry(0.5, 32, 32), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+scene.add(ballMesh);
 
-
-// ==========================================
-// 3. STADIUM BOUNDARIES & GOALS
-// ==========================================
-function createWall(width, height, depth, x, y, z) {
-    const shape = new CANNON.Box(new CANNON.Vec3(width / 2, height / 2, depth / 2));
-    const body = new CANNON.Body({ mass: 0, material: wallMaterial });
-    body.addShape(shape);
-    body.position.set(x, y, z);
-    world.addBody(body);
+// Boundaries & Goals
+function createWall(w, h, d, x, y, z) {
+    const b = new CANNON.Body({ mass: 0, shape: new CANNON.Box(new CANNON.Vec3(w/2, h/2, d/2)), material: slipperyMat });
+    b.position.set(x, y, z);
+    world.addBody(b);
 }
+createWall(50, 10, 1, 0, 5, -15); createWall(50, 10, 1, 0, 5, 15);
+createWall(1, 10, 30, -25, 5, 0); createWall(1, 10, 30, 25, 5, 0);
 
-// 4 Outer Walls
-createWall(50, 10, 1, 0, 5, -15); // Top
-createWall(50, 10, 1, 0, 5, 15);  // Bottom
-createWall(1, 10, 30, -25, 5, 0); // Left
-createWall(1, 10, 30, 25, 5, 0);  // Right
-
-// Goal Generator
-function createGoal(xPosition) {
-    const postMat = new THREE.MeshBasicMaterial({ color: 0xffffff }); 
-    function addPost(px, py, pz, width, height, depth) {
-        const mesh = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), postMat);
-        mesh.position.set(px, py, pz);
-        scene.add(mesh);
-        
-        const body = new CANNON.Body({ mass: 0, material: wallMaterial });
-        body.addShape(new CANNON.Box(new CANNON.Vec3(width / 2, height / 2, depth / 2)));
-        body.position.set(px, py, pz);
-        world.addBody(body);
-    }
-    addPost(xPosition, 1.5, -3, 0.4, 3, 0.4);   // Left Post
-    addPost(xPosition, 1.5, 3, 0.4, 3, 0.4);    // Right Post
-    addPost(xPosition, 3.2, 0, 0.4, 0.4, 6.4);  // Crossbar
-}
-
-createGoal(-24); // Home Goal
-createGoal(24);  // Away Goal
-
-
-// ==========================================
-// 4. CONTROLS & SCORING LOGIC
-// ==========================================
+// 3. CONTROLS & LOGIC
 const keys = { w: false, a: false, s: false, d: false, " ": false };
+document.addEventListener('keydown', (e) => keys[e.key.toLowerCase()] = true);
+document.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
 
-document.addEventListener('keydown', (e) => {
-    if (keys.hasOwnProperty(e.key.toLowerCase())) keys[e.key.toLowerCase()] = true;
-});
-document.addEventListener('keyup', (e) => {
-    if (keys.hasOwnProperty(e.key.toLowerCase())) keys[e.key.toLowerCase()] = false;
-});
+let scoreH = 0, scoreA = 0;
+const speed = 25, aiSpeed = 20, kickP = 35;
 
-let scoreHome = 0;
-let scoreAway = 0;
-const scoreboardText = document.getElementById('scoreboard');
-
-function resetAfterGoal() {
-    scoreboardText.innerText = `HOME ${scoreHome} - ${scoreAway} AWAY`;
-    ballBody.position.set(0, 5, 0);
-    ballBody.velocity.set(0, 0, 0);
-    ballBody.angularVelocity.set(0, 0, 0);
-    playerBody.position.set(-5, 1, 0);
-    playerBody.velocity.set(0, 0, 0);
-    enemyBody.position.set(5, 1, 0);
-    enemyBody.velocity.set(0, 0, 0);
+function reset() {
+    ballBody.position.set(0, 5, 0); ballBody.velocity.set(0,0,0);
+    playerBody.position.set(-10, 1, 0); enemyBody.position.set(10, 1, 0);
+    document.getElementById('scoreboard').innerText = `HOME ${scoreH} - ${scoreA} AWAY`;
 }
-
-
-// ==========================================
-// 5. THE MAIN GAME LOOP
-// ==========================================
-
-// 1. Create a clock to track real-world time
-const clock = new THREE.Clock(); 
-
-// 2. Crank up the Arcade Speeds
-const speed = 15;        // Increased from 8
-const aiSpeed = 12;      // Increased from 5
-const kickPower = 20;    // Increased from 12
-const aiKickPower = 20;  // Increased from 12
 
 function animate() {
     requestAnimationFrame(animate);
-    
-    // 3. Calculate "Delta Time" (time since the last frame)
-    const deltaTime = clock.getDelta();
-    
-    // 4. Step the physics engine using Delta Time to prevent slow-motion lag
-    world.step(1/60, deltaTime, 3); 
-    
-    // --- Player Movement ---
-    playerBody.velocity.x = 0;
-    playerBody.velocity.z = 0;
-    
-    if (keys.w) playerBody.velocity.z = -speed;
-    if (keys.s) playerBody.velocity.z = speed;
-    if (keys.a) playerBody.velocity.x = -speed;
-    if (keys.d) playerBody.velocity.x = speed;
-    
-    // --- Kicking Logic ---
-    if (keys[" "]) {
-        const distance = playerBody.position.distanceTo(ballBody.position);
-        if (distance < 2) {
-            const kickDir = new CANNON.Vec3(
-                ballBody.position.x - playerBody.position.x, 0, ballBody.position.z - playerBody.position.z
-            );
-            kickDir.normalize(); 
-            const impulse = new CANNON.Vec3(kickDir.x * kickPower, 4, kickDir.z * kickPower);
-            ballBody.applyImpulse(impulse, ballBody.position);
-            keys[" "] = false; 
-        }
+    const dt = clock.getDelta();
+    world.step(1/60, dt, 3);
+
+    // Player Move
+    playerBody.velocity.x = 0; playerBody.velocity.z = 0;
+    if (keys.w) playerBody.velocity.z = -speed; if (keys.s) playerBody.velocity.z = speed;
+    if (keys.a) playerBody.velocity.x = -speed; if (keys.d) playerBody.velocity.x = speed;
+
+    // Kick
+    if (keys[" "] && playerBody.position.distanceTo(ballBody.position) < 2) {
+        const dir = new CANNON.Vec3(ballBody.position.x - playerBody.position.x, 0, ballBody.position.z - playerBody.position.z);
+        dir.normalize();
+        ballBody.applyImpulse(new CANNON.Vec3(dir.x * kickP, 4, dir.z * kickP), ballBody.position);
+        keys[" "] = false;
     }
 
-    // --- AI BOT LOGIC ---
-    enemyBody.velocity.x = 0;
-    enemyBody.velocity.z = 0;
-
-    if (enemyBody.position.x < ballBody.position.x - 0.5) enemyBody.velocity.x = aiSpeed;
-    else if (enemyBody.position.x > ballBody.position.x + 0.5) enemyBody.velocity.x = -aiSpeed;
-
-    if (enemyBody.position.z < ballBody.position.z - 0.5) enemyBody.velocity.z = aiSpeed;
-    else if (enemyBody.position.z > ballBody.position.z + 0.5) enemyBody.velocity.z = -aiSpeed;
-
+    // AI Bot
+    enemyBody.velocity.x = (ballBody.position.x > enemyBody.position.x) ? aiSpeed : -aiSpeed;
+    enemyBody.velocity.z = (ballBody.position.z > enemyBody.position.z) ? aiSpeed : -aiSpeed;
     if (enemyBody.position.distanceTo(ballBody.position) < 2) {
-        const kickDir = new CANNON.Vec3(-24 - enemyBody.position.x, 0, 0 - enemyBody.position.z);
-        kickDir.normalize();
-        const impulse = new CANNON.Vec3(kickDir.x * aiKickPower, 4, kickDir.z * aiKickPower);
-        ballBody.applyImpulse(impulse, ballBody.position);
+        const dir = new CANNON.Vec3(-24 - enemyBody.position.x, 0, 0 - enemyBody.position.z);
+        dir.normalize();
+        ballBody.applyImpulse(new CANNON.Vec3(dir.x * kickP, 4, dir.z * kickP), ballBody.position);
     }
 
-    // --- Goal Detection ---
-    if (ballBody.position.x > 24 && Math.abs(ballBody.position.z) < 3) {
-        scoreHome++;
-        resetAfterGoal();
-    } else if (ballBody.position.x < -24 && Math.abs(ballBody.position.z) < 3) {
-        scoreAway++;
-        resetAfterGoal();
-    }
+    // Goals
+    if (ballBody.position.x > 24 && Math.abs(ballBody.position.z) < 3) { scoreH++; reset(); }
+    if (ballBody.position.x < -24 && Math.abs(ballBody.position.z) < 3) { scoreA++; reset(); }
 
-    // --- Sync Graphics to Physics ---
     playerMesh.position.copy(playerBody.position);
     enemyMesh.position.copy(enemyBody.position);
     ballMesh.position.copy(ballBody.position);
-    ballMesh.quaternion.copy(ballBody.quaternion); 
-    
-    // --- Dynamic Camera Tracking ---
-    camera.position.x = playerMesh.position.x;
-    camera.position.y = playerMesh.position.y + 8;
-    camera.position.z = playerMesh.position.z + 10;
+    camera.position.set(playerMesh.position.x, 10, playerMesh.position.z + 12);
     camera.lookAt(playerMesh.position);
-
     renderer.render(scene, camera);
 }
-
-// Window Resize Fix
-window.addEventListener('resize', () => {
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-});
-
-// Start the game!
 animate();
