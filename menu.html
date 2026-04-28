@@ -1,195 +1,109 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FC Maxer - Ultimate Team</title>
-    <style>
-        body { margin: 0; font-family: 'Arial', sans-serif; background-color: #1a1a2e; color: white; display: flex; flex-direction: column; align-items: center; }
-        
-        /* Navbar */
-        .navbar { width: 100%; background-color: #16213e; padding: 15px 20px; display: flex; justify-content: space-between; box-sizing: border-box; border-bottom: 2px solid #e94560; }
-        .navbar h1 { margin: 0; font-size: 24px; letter-spacing: 2px; }
-        .nav-right { display: flex; align-items: center; gap: 20px; }
-        .play-btn { background-color: #228b22; color: white; text-decoration: none; padding: 10px 20px; font-weight: bold; border-radius: 5px; border: 2px solid white; cursor: pointer; }
-        .coins { font-weight: bold; color: #ffd700; font-size: 18px; }
+// 1. ENGINE SETUP
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87CEEB);
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+const clock = new THREE.Clock();
 
-        /* Tabs */
-        .tabs { margin-top: 20px; display: flex; gap: 20px; }
-        .tab-btn { background: #0f3460; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 5px; cursor: pointer; }
-        .tab-btn.active { background: #e94560; font-weight: bold; }
+// 2. PHYSICS WORLD
+const world = new CANNON.World();
+world.gravity.set(0, -9.82, 0);
 
-        .dashboard { margin-top: 30px; text-align: center; width: 100%; max-width: 1000px; }
-        .section { display: none; }
-        .section.active { display: block; }
+const slipperyMat = new CANNON.Material();
+const contactMat = new CANNON.ContactMaterial(slipperyMat, slipperyMat, { friction: 0.01, restitution: 0.5 });
+world.addContactMaterial(contactMat);
 
-        /* Store */
-        .open-pack-btn { background: linear-gradient(45deg, #e94560, #ff2a54); color: white; border: none; padding: 15px 40px; font-size: 20px; font-weight: bold; border-radius: 8px; cursor: pointer; text-transform: uppercase; margin-bottom: 30px; }
-        #pack-result { min-height: 350px; display: flex; justify-content: center; }
+// Pitch
+const groundBody = new CANNON.Body({ mass: 0, shape: new CANNON.Plane(), material: slipperyMat });
+groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
+world.addBody(groundBody);
+const pitchMesh = new THREE.Mesh(new THREE.PlaneGeometry(50, 30), new THREE.MeshBasicMaterial({ color: 0x228B22 }));
+pitchMesh.rotation.x = -Math.PI / 2;
+scene.add(pitchMesh);
 
-        /* Cards */
-        #club-grid { display: flex; flex-wrap: wrap; gap: 15px; padding: 20px; justify-content: center; }
-        .player-card { width: 150px; height: 220px; border-radius: 8px; padding: 10px; box-sizing: border-box; box-shadow: 0 5px 15px rgba(0,0,0,0.8); display: flex; flex-direction: column; color: #111; cursor: grab; user-select: none; }
-        .player-card:active { cursor: grabbing; }
-        .gold { background: linear-gradient(135deg, #f6d365, #fda085); border: 2px solid #fff; }
-        .silver { background: linear-gradient(135deg, #e0c3fc, #8ec5fc); border: 2px solid #fff; }
-        .bronze { background: linear-gradient(135deg, #c79081, #dfa579); border: 2px solid #555; }
-        .rating { font-size: 24px; font-weight: bold; }
-        .position { font-size: 12px; font-weight: bold; }
-        .name { font-size: 14px; font-weight: bold; text-align: center; border-bottom: 2px solid rgba(0,0,0,0.2); margin: 5px 0; text-transform: uppercase; }
-        .stats { display: grid; grid-template-columns: 1fr 1fr; font-size: 10px; font-weight: bold; text-align: center; }
+// Player (Red)
+const playerBody = new CANNON.Body({ mass: 75, shape: new CANNON.Box(new CANNON.Vec3(0.5, 1, 0.5)), position: new CANNON.Vec3(-10, 1, 0), material: slipperyMat });
+playerBody.fixedRotation = true;
+playerBody.linearDamping = 0.5;
+world.addBody(playerBody);
+const playerMesh = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
+scene.add(playerMesh);
 
-        /* Squad Pitch */
-        .tactics-board { background-color: #228b22; width: 100%; max-width: 800px; height: 500px; margin: 0 auto; border: 5px solid white; position: relative; border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; justify-content: space-around; }
-        .pitch-line-center { position: absolute; top: 50%; width: 100%; height: 2px; background: white; }
-        .pitch-circle { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100px; height: 100px; border: 2px solid white; border-radius: 50%; }
-        
-        .squad-row { display: flex; justify-content: space-evenly; width: 100%; z-index: 10; }
-        .slot { width: 150px; height: 220px; border: 2px dashed rgba(255,255,255,0.5); border-radius: 8px; background: rgba(0,0,0,0.3); display: flex; justify-content: center; align-items: center; color: rgba(255,255,255,0.5); font-weight: bold; }
-        .slot.hover { background: rgba(255,255,255,0.2); border-color: white; }
-    </style>
-</head>
-<body>
+// AI Bot (Blue)
+const enemyBody = new CANNON.Body({ mass: 75, shape: new CANNON.Box(new CANNON.Vec3(0.5, 1, 0.5)), position: new CANNON.Vec3(10, 1, 0), material: slipperyMat });
+enemyBody.fixedRotation = true;
+enemyBody.linearDamping = 0.5;
+world.addBody(enemyBody);
+const enemyMesh = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshBasicMaterial({ color: 0x0000ff }));
+scene.add(enemyMesh);
 
-    <div class="navbar">
-        <h1>FC MAXER</h1>
-        <div class="nav-right">
-            <a href="index.html" class="play-btn">⚽ PLAY MATCH</a>
-            <div class="coins">Coins: <span id="coin-balance">500</span></div>
-        </div>
-    </div>
+// Ball
+const ballBody = new CANNON.Body({ mass: 0.43, shape: new CANNON.Sphere(0.5), position: new CANNON.Vec3(0, 5, 0), material: slipperyMat });
+world.addBody(ballBody);
+const ballMesh = new THREE.Mesh(new THREE.SphereGeometry(0.5, 32, 32), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+scene.add(ballMesh);
 
-    <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('store')">Store</button>
-        <button class="tab-btn" onclick="switchTab('club')">My Club</button>
-        <button class="tab-btn" onclick="switchTab('squad')">Squad Builder</button>
-    </div>
+// Boundaries & Goals
+function createWall(w, h, d, x, y, z) {
+    const b = new CANNON.Body({ mass: 0, shape: new CANNON.Box(new CANNON.Vec3(w/2, h/2, d/2)), material: slipperyMat });
+    b.position.set(x, y, z);
+    world.addBody(b);
+}
+createWall(50, 10, 1, 0, 5, -15); createWall(50, 10, 1, 0, 5, 15);
+createWall(1, 10, 30, -25, 5, 0); createWall(1, 10, 30, 25, 5, 0);
 
-    <div class="dashboard">
-        <div id="store" class="section active">
-            <h2>Pack Store</h2>
-            <button class="open-pack-btn" onclick="openPack()">Open Standard Pack (100 Coins)</button>
-            <div id="pack-result"></div>
-        </div>
+// 3. CONTROLS & LOGIC
+const keys = { w: false, a: false, s: false, d: false, " ": false };
+document.addEventListener('keydown', (e) => keys[e.key.toLowerCase()] = true);
+document.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
 
-        <div id="club" class="section">
-            <h2>Club Roster</h2>
-            <p>Drag players from here to the Squad Builder!</p>
-            <div id="club-grid" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
-        </div>
+let scoreH = 0, scoreA = 0;
+const speed = 25, aiSpeed = 20, kickP = 35;
 
-        <div id="squad" class="section">
-            <h2>Active Lineup (4-3-3)</h2>
-            <div class="tactics-board">
-                <div class="pitch-line-center"></div>
-                <div class="pitch-circle"></div>
-                
-                <div class="squad-row">
-                    <div class="slot" ondrop="drop(event)" ondragover="allowDrop(event)">LW</div>
-                    <div class="slot" ondrop="drop(event)" ondragover="allowDrop(event)">ST</div>
-                    <div class="slot" ondrop="drop(event)" ondragover="allowDrop(event)">RW</div>
-                </div>
-                
-                <div class="squad-row">
-                    <div class="slot" ondrop="drop(event)" ondragover="allowDrop(event)">CM</div>
-                    <div class="slot" ondrop="drop(event)" ondragover="allowDrop(event)">CM</div>
-                    <div class="slot" ondrop="drop(event)" ondragover="allowDrop(event)">CM</div>
-                </div>
+function reset() {
+    ballBody.position.set(0, 5, 0); ballBody.velocity.set(0,0,0);
+    playerBody.position.set(-10, 1, 0); enemyBody.position.set(10, 1, 0);
+    document.getElementById('scoreboard').innerText = `HOME ${scoreH} - ${scoreA} AWAY`;
+}
 
-                <div class="squad-row">
-                    <div class="slot" ondrop="drop(event)" ondragover="allowDrop(event)">CB</div>
-                    <div class="slot" ondrop="drop(event)" ondragover="allowDrop(event)">GK</div>
-                    <div class="slot" ondrop="drop(event)" ondragover="allowDrop(event)">CB</div>
-                </div>
-            </div>
-        </div>
-    </div>
+function animate() {
+    requestAnimationFrame(animate);
+    const dt = clock.getDelta();
+    world.step(1/60, dt, 3);
 
-    <script>
-        const db = [
-            { id: "p1", name: "Mbappe", rating: 91, pos: "ST", tier: "gold", pac: 97, sho: 89, pas: 80, dri: 92 },
-            { id: "p2", name: "Haaland", rating: 91, pos: "ST", tier: "gold", pac: 89, sho: 93, pas: 66, dri: 80 },
-            { id: "p3", name: "Vinicius", rating: 89, pos: "LW", tier: "gold", pac: 95, sho: 82, pas: 81, dri: 90 },
-            { id: "p4", name: "Mitoma", rating: 80, pos: "LW", tier: "silver", pac: 84, sho: 73, pas: 74, dri: 82 },
-            { id: "p5", name: "Mainoo", rating: 76, pos: "CM", tier: "silver", pac: 72, sho: 60, pas: 75, dri: 78 },
-            { id: "p6", name: "Rookie", rating: 64, pos: "CB", tier: "bronze", pac: 65, sho: 40, pas: 55, dri: 50 },
-            { id: "p7", name: "Keeper", rating: 60, pos: "GK", tier: "bronze", pac: 30, sho: 20, pas: 40, dri: 30 }
-        ];
+    // Player Move
+    playerBody.velocity.x = 0; playerBody.velocity.z = 0;
+    if (keys.w) playerBody.velocity.z = -speed; if (keys.s) playerBody.velocity.z = speed;
+    if (keys.a) playerBody.velocity.x = -speed; if (keys.d) playerBody.velocity.x = speed;
 
-        let coins = localStorage.getItem('coins') ? parseInt(localStorage.getItem('coins')) : 500;
-        let club = localStorage.getItem('club') ? JSON.parse(localStorage.getItem('club')) : [];
-        let cardIdCounter = club.length; // Unique ID for duplicate cards
-        
-        document.getElementById('coin-balance').innerText = coins;
+    // Kick
+    if (keys[" "] && playerBody.position.distanceTo(ballBody.position) < 2) {
+        const dir = new CANNON.Vec3(ballBody.position.x - playerBody.position.x, 0, ballBody.position.z - playerBody.position.z);
+        dir.normalize();
+        ballBody.applyImpulse(new CANNON.Vec3(dir.x * kickP, 4, dir.z * kickP), ballBody.position);
+        keys[" "] = false;
+    }
 
-        function switchTab(tabId) {
-            document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            event.target.classList.add('active');
-            if (tabId === 'club') renderClub();
-        }
+    // AI Bot
+    enemyBody.velocity.x = (ballBody.position.x > enemyBody.position.x) ? aiSpeed : -aiSpeed;
+    enemyBody.velocity.z = (ballBody.position.z > enemyBody.position.z) ? aiSpeed : -aiSpeed;
+    if (enemyBody.position.distanceTo(ballBody.position) < 2) {
+        const dir = new CANNON.Vec3(-24 - enemyBody.position.x, 0, 0 - enemyBody.position.z);
+        dir.normalize();
+        ballBody.applyImpulse(new CANNON.Vec3(dir.x * kickP, 4, dir.z * kickP), ballBody.position);
+    }
 
-        function openPack() {
-            if (coins < 100) return alert("Not enough coins!");
-            coins -= 100;
-            localStorage.setItem('coins', coins);
-            document.getElementById('coin-balance').innerText = coins;
+    // Goals
+    if (ballBody.position.x > 24 && Math.abs(ballBody.position.z) < 3) { scoreH++; reset(); }
+    if (ballBody.position.x < -24 && Math.abs(ballBody.position.z) < 3) { scoreA++; reset(); }
 
-            const roll = Math.random() * 100;
-            let p;
-            if (roll <= 15) p = db.filter(x => x.tier === 'gold');
-            else if (roll <= 45) p = db.filter(x => x.tier === 'silver');
-            else p = db.filter(x => x.tier === 'bronze');
-            
-            const pulled = Object.assign({}, p[Math.floor(Math.random() * p.length)]);
-            pulled.uid = "card_" + cardIdCounter++; // Unique ID required for dragging
-            
-            club.push(pulled);
-            localStorage.setItem('club', JSON.stringify(club));
-            document.getElementById('pack-result').innerHTML = createHTML(pulled);
-        }
-
-        function renderClub() {
-            const grid = document.getElementById('club-grid');
-            grid.innerHTML = '';
-            club.forEach(p => grid.innerHTML += createHTML(p));
-        }
-
-        function createHTML(p) {
-            return `
-                <div class="player-card ${p.tier}" id="${p.uid}" draggable="true" ondragstart="drag(event)">
-                    <div class="rating">${p.rating}</div>
-                    <div class="position">${p.pos}</div>
-                    <div class="name">${p.name}</div>
-                    <div class="stats">
-                        <div>PAC: ${p.pac}</div><div>DRI: ${p.dri}</div>
-                        <div>SHO: ${p.sho}</div><div>PAS: ${p.pas}</div>
-                    </div>
-                </div>
-            `;
-        }
-
-        // --- DRAG AND DROP API ---
-        function allowDrop(ev) { ev.preventDefault(); }
-        
-        function drag(ev) { ev.dataTransfer.setData("text", ev.target.id); }
-        
-        function drop(ev) {
-            ev.preventDefault();
-            const data = ev.dataTransfer.getData("text");
-            const draggedCard = document.getElementById(data);
-            
-            // If dropping into a slot (pitch)
-            if (ev.target.classList.contains('slot')) {
-                ev.target.innerHTML = ''; // Clear text like "CM"
-                ev.target.appendChild(draggedCard);
-            } 
-            // If dropping back into the club grid
-            else if (ev.target.id === 'club-grid') {
-                ev.target.appendChild(draggedCard);
-            }
-        }
-    </script>
-</body>
-</html>
+    playerMesh.position.copy(playerBody.position);
+    enemyMesh.position.copy(enemyBody.position);
+    ballMesh.position.copy(ballBody.position);
+    camera.position.set(playerMesh.position.x, 10, playerMesh.position.z + 12);
+    camera.lookAt(playerMesh.position);
+    renderer.render(scene, camera);
+}
+animate();
