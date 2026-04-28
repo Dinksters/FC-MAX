@@ -65,6 +65,36 @@ const contactMaterial = new CANNON.ContactMaterial(defaultMaterial, defaultMater
 world.addContactMaterial(contactMaterial);
 
 
+// --- STADIUM BOUNDARIES (Invisible Physics Walls) ---
+// Our pitch is 50 wide (X) and 30 deep (Z). 
+
+const wallMaterial = new CANNON.Material();
+const wallContactMaterial = new CANNON.ContactMaterial(defaultMaterial, wallMaterial, {
+    friction: 0.0,
+    restitution: 0.5 // Balls bounce slightly off the invisible walls
+});
+world.addContactMaterial(wallContactMaterial);
+
+// Function to create a generic wall
+function createWall(mass, width, height, depth, x, y, z) {
+    const wallShape = new CANNON.Box(new CANNON.Vec3(width / 2, height / 2, depth / 2));
+    const wallBody = new CANNON.Body({ mass: mass, material: wallMaterial });
+    wallBody.addShape(wallShape);
+    wallBody.position.set(x, y, z);
+    world.addBody(wallBody);
+    return wallBody;
+}
+
+// Top Wall (North)
+createWall(0, 50, 10, 1, 0, 5, -15);
+// Bottom Wall (South)
+createWall(0, 50, 10, 1, 0, 5, 15);
+// Left Wall (West)
+createWall(0, 1, 10, 30, -25, 5, 0);
+// Right Wall (East)
+createWall(0, 1, 10, 30, 25, 5, 0);
+
+
 // --- 3. CONTROLS ---
 const keys = { w: false, a: false, s: false, d: false };
 document.addEventListener('keydown', (e) => keys[e.key.toLowerCase()] = true);
