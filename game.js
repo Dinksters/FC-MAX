@@ -1,65 +1,106 @@
-// 1. Scene & Camera Setup
+// --- 1. THREE.JS VISUAL SETUP ---
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87CEEB); 
-
+scene.background = new THREE.Color(0x87CEEB);
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-// Camera will be positioned dynamically in the animation loop
-
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// 2. The Pitch
-const pitchGeometry = new THREE.PlaneGeometry(50, 30);
-const pitchMaterial = new THREE.MeshBasicMaterial({ color: 0x228B22, side: THREE.DoubleSide });
-const pitch = new THREE.Mesh(pitchGeometry, pitchMaterial);
-pitch.rotation.x = Math.PI / 2;
-scene.add(pitch);
+// Visual Pitch
+const pitchGeo = new THREE.PlaneGeometry(50, 30);
+const pitchMat = new THREE.MeshBasicMaterial({ color: 0x228B22, side: THREE.DoubleSide });
+const pitchMesh = new THREE.Mesh(pitchGeo, pitchMat);
+pitchMesh.rotation.x = Math.PI / 2;
+scene.add(pitchMesh);
 
-// 3. The Player (Red Box)
-const playerGeometry = new THREE.BoxGeometry(1, 2, 1);
-const playerMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-const player = new THREE.Mesh(playerGeometry, playerMaterial);
-player.position.y = 1; 
-scene.add(player);
+// Visual Player
+const playerGeo = new THREE.BoxGeometry(1, 2, 1);
+const playerMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+const playerMesh = new THREE.Mesh(playerGeo, playerMat);
+scene.add(playerMesh);
 
-// 4. The Ball (White Sphere)
-const ballGeometry = new THREE.SphereGeometry(0.5, 32, 32);
-const ballMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
-const ball = new THREE.Mesh(ballGeometry, ballMaterial);
-ball.position.set(0, 0.5, -5); // Start slightly ahead of the player
-scene.add(ball);
+// Visual Ball
+const ballGeo = new THREE.SphereGeometry(0.5, 32, 32);
+const ballMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+const ballMesh = new THREE.Mesh(ballGeo, ballMat);
+scene.add(ballMesh);
 
-// 5. Input Tracking (WASD)
+
+// --- 2. CANNON.JS PHYSICS SETUP ---
+const world = new CANNON.World();
+world.gravity.set(0, -9.82, 0); // Earth's gravity
+
+// Physics Pitch (Mass 0 makes it a static, unmoving floor)
+const groundBody = new CANNON.Body({
+    mass: 0, 
+    shape: new CANNON.Plane()
+});
+groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
+world.addBody(groundBody);
+
+// Physics Player (75kg player)
+const playerBody = new CANNON.Body({
+    mass: 75, 
+    shape: new CANNON.Box(new CANNON.Vec3(0.5, 1, 0.5)),
+    position: new CANNON.Vec3(0, 1, 0)
+});
+playerBody.fixedRotation = true; // Prevents the player from tipping over
+playerBody.updateMassProperties();
+world.addBody(playerBody);
+
+// Physics Ball (0.43kg standard football)
+const ballBody = new CANNON.Body({
+    mass: 0.43, 
+    shape: new CANNON.Sphere(0.5),
+    position: new CANNON.Vec3(0, 5, -5) // Drop it from the sky to test gravity!
+});
+world.addBody(ballBody);
+
+// Bounciness and Friction
+const defaultMaterial = new CANNON.Material();
+const contactMaterial = new CANNON.ContactMaterial(defaultMaterial, defaultMaterial, {
+    friction: 0.4,
+    restitution: 0.7 // Gives the ball a realistic bounce
+});
+world.addContactMaterial(contactMaterial);
+
+
+// --- 3. CONTROLS ---
 const keys = { w: false, a: false, s: false, d: false };
+document.addEventListener('keydown', (e) => keys[e.key.toLowerCase()] = true);
+document.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
 
-document.addEventListener('keydown', (event) => {
-    const key = event.key.toLowerCase();
-    if (keys.hasOwnProperty(key)) keys[key] = true;
-});
 
-document.addEventListener('keyup', (event) => {
-    const key = event.key.toLowerCase();
-    if (keys.hasOwnProperty(key)) keys[key] = false;
-});
-
-// 6. The Game Loop
-const playerSpeed = 0.15;
+// --- 4. THE GAME LOOP ---
+const timeStep = 1 / 60;
+const speed = 8;
 
 function animate() {
     requestAnimationFrame(animate);
     
-    // Player Movement Logic
-    if (keys.w) player.position.z -= playerSpeed;
-    if (keys.s) player.position.z += playerSpeed;
-    if (keys.a) player.position.x -= playerSpeed;
-    if (keys.d) player.position.x += playerSpeed;
-
-    // Dynamic Camera (Follows the player)
-    camera.position.x = player.position.x;
-    camera.position.y = player.position.y + 8; // Height of camera
-    camera.position.z = player.position.z + 10; // Distance behind player
-    camera.lookAt(player.position); // Always look at the player
+    // Step the physics engine forward
+    world.step(timeStep);
+    
+    // Player Movement (Apply velocity to the physics body, not the visual mesh)
+    playerBody.velocity.x = 0;
+    playerBody.velocity.z = 0;
+    
+    if (keys.w) playerBody.velocity.z = -speed;
+    if (keys.s) playerBody.velocity.z = speed;
+    if (keys.a) playerBody.velocity.x = -speed;
+    if (keys.d) playerBody.velocity.x = speed;
+    
+    // Sync the invisible Physics world to the visible Three.js world
+    playerMesh.position.copy(playerBody.position);
+    
+    ballMesh.position.copy(ballBody.position);
+    ballMesh.quaternion.copy(ballBody.quaternion); // Makes the ball visually roll
+    
+    // Chase Camera
+    camera.position.x = playerMesh.position.x;
+    camera.position.y = playerMesh.position.y + 8;
+    camera.position.z = playerMesh.position.z + 10;
+    camera.lookAt(playerMesh.position);
 
     renderer.render(scene, camera);
 }
