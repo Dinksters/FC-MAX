@@ -95,23 +95,31 @@ createWall(0, 1, 10, 30, -25, 5, 0);
 createWall(0, 1, 10, 30, 25, 5, 0);
 
 
-// --- 3. CONTROLS ---
-const keys = { w: false, a: false, s: false, d: false };
-document.addEventListener('keydown', (e) => keys[e.key.toLowerCase()] = true);
-document.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
+// --- 3. CONTROLS (Updated) ---
+// Added a space string " " to track the spacebar
+const keys = { w: false, a: false, s: false, d: false, " ": false };
+
+document.addEventListener('keydown', (e) => {
+    const key = e.key.toLowerCase();
+    if (keys.hasOwnProperty(key)) keys[key] = true;
+});
+
+document.addEventListener('keyup', (e) => {
+    const key = e.key.toLowerCase();
+    if (keys.hasOwnProperty(key)) keys[key] = false;
+});
 
 
-// --- 4. THE GAME LOOP ---
+// --- 4. THE GAME LOOP (Updated) ---
 const timeStep = 1 / 60;
 const speed = 8;
+const kickPower = 12; // Adjust this to make the shot harder or softer
 
 function animate() {
     requestAnimationFrame(animate);
-    
-    // Step the physics engine forward
     world.step(timeStep);
     
-    // Player Movement (Apply velocity to the physics body, not the visual mesh)
+    // Player Movement
     playerBody.velocity.x = 0;
     playerBody.velocity.z = 0;
     
@@ -120,13 +128,44 @@ function animate() {
     if (keys.a) playerBody.velocity.x = -speed;
     if (keys.d) playerBody.velocity.x = speed;
     
-    // Sync the invisible Physics world to the visible Three.js world
+    // --- SHOOTING LOGIC ---
+    if (keys[" "]) {
+        // 1. Check how far the player is from the ball
+        const distance = playerBody.position.distanceTo(ballBody.position);
+        
+        // 2. If within 2 units, execute the kick
+        if (distance < 2) {
+            // Calculate the exact direction from the player to the ball
+            const kickDirection = new CANNON.Vec3(
+                ballBody.position.x - playerBody.position.x,
+                0, 
+                ballBody.position.z - playerBody.position.z
+            );
+            
+            // Normalize keeps the vector length at 1, so diagonal kicks aren't stronger
+            kickDirection.normalize(); 
+            
+            // Create the impulse force (multiplying direction by power, and adding a little upward chip '4')
+            const impulse = new CANNON.Vec3(
+                kickDirection.x * kickPower, 
+                4, // Gives the ball a nice arc into the air
+                kickDirection.z * kickPower
+            );
+            
+            // Blast the ball!
+            ballBody.applyImpulse(impulse, ballBody.position);
+            
+            // Prevent rapid-fire by forcing the player to release and re-press spacebar
+            keys[" "] = false; 
+        }
+    }
+
+    // Sync graphics
     playerMesh.position.copy(playerBody.position);
-    
     ballMesh.position.copy(ballBody.position);
-    ballMesh.quaternion.copy(ballBody.quaternion); // Makes the ball visually roll
+    ballMesh.quaternion.copy(ballBody.quaternion); 
     
-    // Chase Camera
+    // Camera Tracking
     camera.position.x = playerMesh.position.x;
     camera.position.y = playerMesh.position.y + 8;
     camera.position.z = playerMesh.position.z + 10;
@@ -143,3 +182,5 @@ window.addEventListener('resize', () => {
 });
 
 animate();
+    
+    
