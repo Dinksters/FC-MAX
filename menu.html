@@ -2,141 +2,109 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>FC Maxer - Ultimate Team</title>
+    <title>FC Maxer - Club Dashboard</title>
     <style>
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background-color: #0b0e11; color: white; display: flex; flex-direction: column; align-items: center; }
-        .navbar { width: 100%; background: #1a1d23; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #e94560; box-sizing: border-box; }
-        .btn { padding: 10px 20px; border-radius: 5px; font-weight: bold; text-decoration: none; cursor: pointer; border: none; }
-        .play-btn { background: #228b22; color: white; border: 2px solid #fff; }
-        .tabs { margin: 20px 0; display: flex; gap: 10px; }
-        .tab-btn { background: #2c2f36; color: #999; }
-        .tab-btn.active { background: #e94560; color: white; }
-        .section { display: none; width: 95%; max-width: 1200px; text-align: center; }
-        .section.active { display: block; }
-
-        /* The Pitch - Designed for 11 Players */
-        .pitch { 
-            background: #2d5a27; width: 100%; min-height: 600px; 
-            border: 4px solid white; border-radius: 15px; position: relative; 
-            margin-top: 20px; display: flex; flex-direction: column; 
-            justify-content: space-around; padding: 20px; box-sizing: border-box;
-            background-image: linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px);
-            background-size: 100% 50px;
-        }
-        .squad-row { display: flex; justify-content: center; gap: 15px; width: 100%; }
-        
-        /* Bench Area */
-        .bench-container { margin-top: 30px; background: #16191e; padding: 20px; border-radius: 10px; border: 1px solid #333; }
-        .grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
-
-        /* Smaller Cards for 11-man view */
-        .card { width: 120px; height: 180px; border-radius: 8px; color: #111; padding: 10px; position: relative; box-shadow: 0 4px 8px rgba(0,0,0,0.5); font-size: 12px; }
-        .gold { background: linear-gradient(135deg, #fceabb, #f8b500); }
-        .silver { background: linear-gradient(135deg, #bdc3c7, #2c3e50); color: white; }
-        .bronze { background: linear-gradient(135deg, #804a00, #331a00); color: white; }
-        
-        .sell-btn { position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%); background: #ff2a54; color: white; font-size: 9px; border: none; padding: 3px 7px; border-radius: 3px; cursor: pointer; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #0b0e11; color: white; display: flex; flex-direction: column; align-items: center; }
+        .navbar { width: 100%; background: #16191e; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #e94560; box-sizing: border-box; }
+        .stats-bar { display: flex; gap: 30px; font-weight: bold; font-size: 18px; }
+        .btn { padding: 12px 24px; border-radius: 5px; cursor: pointer; border: none; font-weight: bold; text-decoration: none; }
+        .play { background: #228b22; color: white; border: 2px solid #fff; }
+        .tabs { margin: 20px; display: flex; gap: 10px; }
+        .tab { background: #2c2f36; color: #888; }
+        .tab.active { background: #e94560; color: white; }
+        .pane { display: none; width: 95%; max-width: 1200px; }
+        .pane.active { display: block; }
+        .pitch { background: #2d5a27; height: 550px; border: 4px solid #fff; border-radius: 15px; display: flex; flex-direction: column; justify-content: space-around; padding: 15px; position: relative; }
+        .row { display: flex; justify-content: center; gap: 15px; }
+        .card { width: 110px; height: 160px; border-radius: 8px; color: #111; padding: 10px; position: relative; box-shadow: 0 4px 10px #000; font-size: 11px; text-align: center; }
+        .gold { background: linear-gradient(135deg, #f6d365, #fda085); }
+        .silver { background: #bdc3c7; }
+        .bronze { background: #cd7f32; color: white; }
+        .grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; padding: 20px; background: #1a1d23; border-radius: 10px; margin-top: 20px; }
+        .sell { position: absolute; bottom: 5px; width: 80%; left: 10%; background: #ff2a54; color: white; border: none; border-radius: 3px; font-size: 9px; cursor: pointer; }
     </style>
 </head>
 <body>
     <div class="navbar">
         <h1>FC MAXER</h1>
-        <div style="display:flex; align-items:center; gap:20px;">
-            <span style="color: #ffd700; font-size: 20px;">🪙 <span id="coins">500</span></span>
-            <a href="index.html" class="btn play-btn">⚽ PLAY MATCH</a>
+        <div class="stats-bar">
+            <span>🪙 <span id="c-val">0</span></span>
+            <span style="color:#00ff00">CHEM: <span id="chem">0</span></span>
         </div>
+        <a href="index.html" class="btn play">⚽ PLAY MATCH</a>
     </div>
 
     <div class="tabs">
-        <button class="tab-btn btn active" onclick="showTab('store')">STORE</button>
-        <button class="tab-btn btn" onclick="showTab('squad')">SQUAD & BENCH</button>
-        <button class="tab-btn btn" onclick="showTab('club')">FULL CLUB</button>
+        <button class="btn tab active" onclick="tab('st')">STORE</button>
+        <button class="btn tab" onclick="tab('sq')">SQUAD</button>
+        <button class="btn tab" onclick="tab('cl')">CLUB</button>
     </div>
 
-    <div id="store" class="section active">
-        <button class="btn" style="background: #e94560; color: white; font-size: 20px; padding: 15px 30px;" onclick="buyPack()">OPEN PACK (100 🪙)</button>
-        <div id="pack-reveal" class="grid" style="margin-top:20px"></div>
+    <div id="st" class="pane active">
+        <button class="btn" style="background:#e94560; color:white; width:300px; font-size:20px" onclick="buy()">OPEN PRO PACK (100 🪙)</button>
+        <div id="new-card" class="grid"></div>
     </div>
 
-    <div id="squad" class="section">
-        <h2>Starting 11 (Top Rated)</h2>
-        <div class="pitch" id="pitch-view">
-            <div class="squad-row" id="attackers"></div>
-            <div class="squad-row" id="midfielders"></div>
-            <div class="squad-row" id="defenders"></div>
-            <div class="squad-row" id="goalkeeper"></div>
+    <div id="sq" class="pane">
+        <div class="pitch">
+            <div class="row" id="att"></div>
+            <div class="row" id="mid"></div>
+            <div class="row" id="def"></div>
+            <div class="row" id="gk"></div>
         </div>
-
-        <div class="bench-container">
-            <h3>Substitutes Bench</h3>
-            <div id="bench-view" class="grid"></div>
-        </div>
+        <div class="grid" id="bench"></div>
     </div>
 
-    <div id="club" class="section">
-        <h2>All Players</h2>
-        <div id="club-grid" class="grid"></div>
+    <div id="cl" class="pane">
+        <div class="grid" id="full"></div>
     </div>
 
     <script>
-        let coins = localStorage.getItem('c') ? parseInt(localStorage.getItem('c')) : 199999999999999999999999999999999999999999999999999999999999999999999;
-        let club = localStorage.getItem('cl') ? JSON.parse(localStorage.getItem('cl')) : [];
-        const players = [
-            {n:"Mbappe",r:91,t:"gold"},{n:"Vini",r:90,t:"gold"},{n:"Pedri",r:86,t:"gold"},
-            {n:"Bellingham",r:88,t:"gold"},{n:"Yamal",r:82,t:"gold"},{n:"Mainoo",r:77,t:"silver"},
-            {n:"Garnacho",r:79,t:"silver"},{n:"Rookie",r:62,t:"bronze"},{n:"Walker",r:84,t:"gold"},
-            {n:"Ederson",r:88,t:"gold"},{n:"Dias",r:89,t:"gold"},{n:"Rodri",r:91,t:"gold"}
-        ];
+        let c = parseInt(localStorage.getItem('c') || 1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000);
+        let club = JSON.parse(localStorage.getItem('cl') || "[]");
+        const pool = [{n:"Yamal",r:99,t:"gold"},{n:"Vini",r:98,t:"gold"},{n:"Bellingham",r:99,t:"gold"},{n:"Rodri",r:98,t:"gold"},{n:"Mainoo",r:95,t:"gold"},{n:"Garnacho",r:80,t:"bronze"},{n:"Endrick",r:99,t:"gold"},{n:"Rookie",r:64,t:"bronze"}];
 
-        function save(){ localStorage.setItem('c', coins); localStorage.setItem('cl', JSON.stringify(club)); document.getElementById('coins').innerText = coins; }
-        
-        function showTab(t){
-            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(t).classList.add('active'); 
+        function sync() {
+            localStorage.setItem('c', c); localStorage.setItem('cl', JSON.stringify(club));
+            document.getElementById('c-val').innerText = c;
+            let chem = club.reduce((a, b) => a + (b.t === 'gold' ? 10 : 5), 0);
+            document.getElementById('chem').innerText = Math.min(chem, 100);
+        }
+
+        function tab(id) {
+            document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
             event.target.classList.add('active');
-            if(t === 'club') renderClub(); 
-            if(t === 'squad') renderSquad();
+            if(id === 'sq') renderSq(); if(id === 'cl') renderCl();
         }
 
-        function buyPack(){
-            if(coins < 100) return alert("Not enough coins!");
-            coins -= 100; 
-            const p = {...players[Math.floor(Math.random()*players.length)], id: Date.now()};
-            club.push(p); 
-            document.getElementById('pack-reveal').innerHTML = createCard(p, false); 
-            save();
+        function buy() {
+            if(c < 100) return alert("Not enough coins!");
+            c -= 100;
+            const p = {...pool[Math.floor(Math.random()*pool.length)], id: Date.now()};
+            club.push(p);
+            document.getElementById('new-card').innerHTML = card(p, false);
+            sync();
         }
 
-        function sellPlayer(id){ club = club.filter(p => p.id !== id); coins += 50; save(); renderClub(); renderSquad(); }
+        function sell(id) { club = club.filter(p => p.id !== id); c += 50; sync(); renderCl(); renderSq(); }
 
-        function createCard(p, s){
-            return `<div class="card ${p.t}"><h2>${p.r}</h2><p><b>${p.n}</b></p>${s ? `<button class="sell-btn" onclick="sellPlayer(${p.id})">SELL</button>` : ''}</div>`;
+        function card(p, s) {
+            return `<div class="card ${p.t}"><h2>${p.r}</h2><p><b>${p.n}</b></p>${s ? `<button class="sell" onclick="sell(${p.id})">SELL</button>` : ''}</div>`;
         }
 
-        function renderClub(){ document.getElementById('club-grid').innerHTML = club.map(p => createCard(p, true)).join(''); }
+        function renderCl() { document.getElementById('full').innerHTML = club.map(p => card(p, true)).join(''); }
 
-        function renderSquad(){
-            // Sort all players by rating
-            const sorted = [...club].sort((a,b) => b.r - a.r);
-            
-            // Starting 11
-            const attackers = sorted.slice(0, 3);
-            const mids = sorted.slice(3, 6);
-            const defs = sorted.slice(6, 10);
-            const gk = sorted.slice(10, 11);
-            
-            // Bench (everyone else)
-            const bench = sorted.slice(11, 18);
-
-            document.getElementById('attackers').innerHTML = attackers.map(p => createCard(p, false)).join('');
-            document.getElementById('midfielders').innerHTML = mids.map(p => createCard(p, false)).join('');
-            document.getElementById('defenders').innerHTML = defs.map(p => createCard(p, false)).join('');
-            document.getElementById('goalkeeper').innerHTML = gk.map(p => createCard(p, false)).join('');
-            document.getElementById('bench-view').innerHTML = bench.map(p => createCard(p, false)).join('');
+        function renderSq() {
+            const s = [...club].sort((a,b) => b.r - a.r);
+            document.getElementById('att').innerHTML = s.slice(0,3).map(p => card(p, false)).join('');
+            document.getElementById('mid').innerHTML = s.slice(3,6).map(p => card(p, false)).join('');
+            document.getElementById('def').innerHTML = s.slice(6,10).map(p => card(p, false)).join('');
+            document.getElementById('gk').innerHTML = s.slice(10,11).map(p => card(p, false)).join('');
+            document.getElementById('bench').innerHTML = s.slice(11, 18).map(p => card(p, false)).join('');
         }
-
-        document.getElementById('coins').innerText = coins;
+        sync();
     </script>
 </body>
 </html>
