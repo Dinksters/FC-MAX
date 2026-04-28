@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FC Maxer - Phase 2 Live</title>
+    <title>FC Maxer - Stadium</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #111; font-family: 'Arial', sans-serif; }
         #scoreboard {
@@ -17,11 +17,23 @@
             padding: 10px 20px; font-weight: bold; border-radius: 5px; z-index: 100;
             border: 2px solid white;
         }
+        /* Stamina Bar UI */
+        #stamina-container {
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            width: 200px; height: 15px; background: rgba(0,0,0,0.5); border: 2px solid white; border-radius: 10px;
+        }
+        #stamina-fill {
+            width: 100%; height: 100%; background: #00ff00; border-radius: 5px; transition: width 0.1s;
+        }
     </style>
 </head>
 <body>
     <div id="scoreboard">HOME 0 - 0 AWAY</div>
     <a href="menu.html" class="nav-btn">Back to Club</a>
+    
+    <div id="stamina-container">
+        <div id="stamina-fill"></div>
+    </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
