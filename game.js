@@ -66,6 +66,22 @@ playerBody.fixedRotation = true;
 playerBody.updateMassProperties();
 world.addBody(playerBody);
 
+// --- AI OPPONENT VISUAL & PHYSICS ---
+const enemyGeo = new THREE.BoxGeometry(1, 2, 1);
+const enemyMat = new THREE.MeshBasicMaterial({ color: 0x0000ff }); // Blue kit
+const enemyMesh = new THREE.Mesh(enemyGeo, enemyMat);
+scene.add(enemyMesh);
+
+const enemyBody = new CANNON.Body({
+    mass: 75,
+    shape: new CANNON.Box(new CANNON.Vec3(0.5, 1, 0.5)),
+    position: new CANNON.Vec3(5, 1, 0), // Spawns on the Away side
+    material: defaultMaterial
+});
+enemyBody.fixedRotation = true;
+enemyBody.updateMassProperties();
+world.addBody(enemyBody);
+
 // Physics Ball
 const ballBody = new CANNON.Body({
     mass: 0.43, 
