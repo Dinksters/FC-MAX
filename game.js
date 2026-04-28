@@ -162,49 +162,35 @@ function resetAfterGoal() {
 // ==========================================
 // 5. THE MAIN GAME LOOP
 // ==========================================
-const timeStep = 1 / 60;
-const speed = 8;
-const kickPower = 12;
+
+// 1. Create a clock to track real-world time
+const clock = new THREE.Clock(); 
+
+// 2. Crank up the Arcade Speeds
+const speed = 15;        // Increased from 8
+const aiSpeed = 12;      // Increased from 5
+const kickPower = 20;    // Increased from 12
+const aiKickPower = 20;  // Increased from 12
 
 function animate() {
     requestAnimationFrame(animate);
-    world.step(timeStep);
     
-    // Player Movement
+    // 3. Calculate "Delta Time" (time since the last frame)
+    const deltaTime = clock.getDelta();
+    
+    // 4. Step the physics engine using Delta Time to prevent slow-motion lag
+    world.step(1/60, deltaTime, 3); 
+    
+    // --- Player Movement ---
     playerBody.velocity.x = 0;
     playerBody.velocity.z = 0;
+    
     if (keys.w) playerBody.velocity.z = -speed;
     if (keys.s) playerBody.velocity.z = speed;
     if (keys.a) playerBody.velocity.x = -speed;
     if (keys.d) playerBody.velocity.x = speed;
-
-    // --- AI BOT LOGIC ---
-    const aiSpeed = 5; // Slightly slower than you (Speed 8) so you can outrun him
-    const aiKickPower = 12;
-
-    enemyBody.velocity.x = 0;
-    enemyBody.velocity.z = 0;
-
-    // 1. Calculate path to the ball and chase it
-    if (enemyBody.position.x < ballBody.position.x - 0.5) enemyBody.velocity.x = aiSpeed;
-    else if (enemyBody.position.x > ballBody.position.x + 0.5) enemyBody.velocity.x = -aiSpeed;
-
-    if (enemyBody.position.z < ballBody.position.z - 0.5) enemyBody.velocity.z = aiSpeed;
-    else if (enemyBody.position.z > ballBody.position.z + 0.5) enemyBody.velocity.z = -aiSpeed;
-
-    // 2. Shoot if within striking distance
-    if (enemyBody.position.distanceTo(ballBody.position) < 2) {
-        // Target your Home Goal (x: -24)
-        const kickDir = new CANNON.Vec3(-24 - enemyBody.position.x, 0, 0 - enemyBody.position.z);
-        kickDir.normalize();
-        const impulse = new CANNON.Vec3(kickDir.x * aiKickPower, 4, kickDir.z * aiKickPower);
-        ballBody.applyImpulse(impulse, ballBody.position);
-    }
-
-    // 3. Sync Bot graphics
-    enemyMesh.position.copy(enemyBody.position);
     
-    // Kicking Logic (Spacebar)
+    // --- Kicking Logic ---
     if (keys[" "]) {
         const distance = playerBody.position.distanceTo(ballBody.position);
         if (distance < 2) {
@@ -214,11 +200,28 @@ function animate() {
             kickDir.normalize(); 
             const impulse = new CANNON.Vec3(kickDir.x * kickPower, 4, kickDir.z * kickPower);
             ballBody.applyImpulse(impulse, ballBody.position);
-            keys[" "] = false; // Require re-press to kick again
+            keys[" "] = false; 
         }
     }
 
-    // Goal Detection
+    // --- AI BOT LOGIC ---
+    enemyBody.velocity.x = 0;
+    enemyBody.velocity.z = 0;
+
+    if (enemyBody.position.x < ballBody.position.x - 0.5) enemyBody.velocity.x = aiSpeed;
+    else if (enemyBody.position.x > ballBody.position.x + 0.5) enemyBody.velocity.x = -aiSpeed;
+
+    if (enemyBody.position.z < ballBody.position.z - 0.5) enemyBody.velocity.z = aiSpeed;
+    else if (enemyBody.position.z > ballBody.position.z + 0.5) enemyBody.velocity.z = -aiSpeed;
+
+    if (enemyBody.position.distanceTo(ballBody.position) < 2) {
+        const kickDir = new CANNON.Vec3(-24 - enemyBody.position.x, 0, 0 - enemyBody.position.z);
+        kickDir.normalize();
+        const impulse = new CANNON.Vec3(kickDir.x * aiKickPower, 4, kickDir.z * aiKickPower);
+        ballBody.applyImpulse(impulse, ballBody.position);
+    }
+
+    // --- Goal Detection ---
     if (ballBody.position.x > 24 && Math.abs(ballBody.position.z) < 3) {
         scoreHome++;
         resetAfterGoal();
@@ -227,12 +230,13 @@ function animate() {
         resetAfterGoal();
     }
 
-    // Sync Graphics to Physics
+    // --- Sync Graphics to Physics ---
     playerMesh.position.copy(playerBody.position);
+    enemyMesh.position.copy(enemyBody.position);
     ballMesh.position.copy(ballBody.position);
     ballMesh.quaternion.copy(ballBody.quaternion); 
     
-    // Dynamic Camera Tracking
+    // --- Dynamic Camera Tracking ---
     camera.position.x = playerMesh.position.x;
     camera.position.y = playerMesh.position.y + 8;
     camera.position.z = playerMesh.position.z + 10;
