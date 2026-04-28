@@ -175,6 +175,32 @@ function animate() {
     if (keys.s) playerBody.velocity.z = speed;
     if (keys.a) playerBody.velocity.x = -speed;
     if (keys.d) playerBody.velocity.x = speed;
+
+    // --- AI BOT LOGIC ---
+    const aiSpeed = 5; // Slightly slower than you (Speed 8) so you can outrun him
+    const aiKickPower = 12;
+
+    enemyBody.velocity.x = 0;
+    enemyBody.velocity.z = 0;
+
+    // 1. Calculate path to the ball and chase it
+    if (enemyBody.position.x < ballBody.position.x - 0.5) enemyBody.velocity.x = aiSpeed;
+    else if (enemyBody.position.x > ballBody.position.x + 0.5) enemyBody.velocity.x = -aiSpeed;
+
+    if (enemyBody.position.z < ballBody.position.z - 0.5) enemyBody.velocity.z = aiSpeed;
+    else if (enemyBody.position.z > ballBody.position.z + 0.5) enemyBody.velocity.z = -aiSpeed;
+
+    // 2. Shoot if within striking distance
+    if (enemyBody.position.distanceTo(ballBody.position) < 2) {
+        // Target your Home Goal (x: -24)
+        const kickDir = new CANNON.Vec3(-24 - enemyBody.position.x, 0, 0 - enemyBody.position.z);
+        kickDir.normalize();
+        const impulse = new CANNON.Vec3(kickDir.x * aiKickPower, 4, kickDir.z * aiKickPower);
+        ballBody.applyImpulse(impulse, ballBody.position);
+    }
+
+    // 3. Sync Bot graphics
+    enemyMesh.position.copy(enemyBody.position);
     
     // Kicking Logic (Spacebar)
     if (keys[" "]) {
