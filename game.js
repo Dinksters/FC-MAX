@@ -1,6 +1,13 @@
 // 1. ENGINE SETUP
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87CEEB);
+// --- STADIUM LIGHTING ---
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.6); // Soft white light
+scene.add(ambientLight);
+
+const sunLight = new THREE.DirectionalLight(0xffffff, 1);
+sunLight.position.set(5, 10, 7.5);
+scene.add(sunLight);
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -63,8 +70,18 @@ let scoreH = 0, scoreA = 0;
 const speed = 25, aiSpeed = 20, kickP = 35;
 
 function reset() {
-    ballBody.position.set(0, 5, 0); ballBody.velocity.set(0,0,0);
-    playerBody.position.set(-10, 1, 0); enemyBody.position.set(10, 1, 0);
+    // Reward 50 coins for every goal scored by the Home team
+    if (scoreH > 0) {
+        let currentCoins = localStorage.getItem('c') ? parseInt(localStorage.getItem('c')) : 500;
+        currentCoins += 50; 
+        localStorage.setItem('c', currentCoins);
+        console.log("Goal Bonus: +50 Coins!");
+    }
+
+    ballBody.position.set(0, 5, 0); 
+    ballBody.velocity.set(0,0,0);
+    playerBody.position.set(-10, 1, 0); 
+    enemyBody.position.set(10, 1, 0);
     document.getElementById('scoreboard').innerText = `HOME ${scoreH} - ${scoreA} AWAY`;
 }
 
