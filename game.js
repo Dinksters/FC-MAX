@@ -1,6 +1,8 @@
-// --- 1. THREE.JS VISUAL SETUP ---
+// ==========================================
+// 1. GRAPHICS SETUP (Three.js)
+// ==========================================
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87CEEB);
+scene.background = new THREE.Color(0x87CEEB); // Sky blue
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -26,94 +28,125 @@ const ballMesh = new THREE.Mesh(ballGeo, ballMat);
 scene.add(ballMesh);
 
 
-// --- 2. CANNON.JS PHYSICS SETUP ---
+// ==========================================
+// 2. PHYSICS SETUP (Cannon.js)
+// ==========================================
 const world = new CANNON.World();
-world.gravity.set(0, -9.82, 0); // Earth's gravity
+world.gravity.set(0, -9.82, 0); // Earth gravity
 
-// Physics Pitch (Mass 0 makes it a static, unmoving floor)
-const groundBody = new CANNON.Body({
-    mass: 0, 
-    shape: new CANNON.Plane()
-});
-groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
-world.addBody(groundBody);
-
-// Physics Player (75kg player)
-const playerBody = new CANNON.Body({
-    mass: 75, 
-    shape: new CANNON.Box(new CANNON.Vec3(0.5, 1, 0.5)),
-    position: new CANNON.Vec3(0, 1, 0)
-});
-playerBody.fixedRotation = true; // Prevents the player from tipping over
-playerBody.updateMassProperties();
-world.addBody(playerBody);
-
-// Physics Ball (0.43kg standard football)
-const ballBody = new CANNON.Body({
-    mass: 0.43, 
-    shape: new CANNON.Sphere(0.5),
-    position: new CANNON.Vec3(0, 5, -5) // Drop it from the sky to test gravity!
-});
-world.addBody(ballBody);
-
-// Bounciness and Friction
+// Physics Materials for Bouncing
 const defaultMaterial = new CANNON.Material();
-const contactMaterial = new CANNON.ContactMaterial(defaultMaterial, defaultMaterial, {
-    friction: 0.4,
-    restitution: 0.7 // Gives the ball a realistic bounce
-});
-world.addContactMaterial(contactMaterial);
-
-
-// --- STADIUM BOUNDARIES (Invisible Physics Walls) ---
-// Our pitch is 50 wide (X) and 30 deep (Z). 
-
 const wallMaterial = new CANNON.Material();
+
+const ballContactMaterial = new CANNON.ContactMaterial(defaultMaterial, defaultMaterial, {
+    friction: 0.4,
+    restitution: 0.7 // Ball bounce on grass
+});
+world.addContactMaterial(ballContactMaterial);
+
 const wallContactMaterial = new CANNON.ContactMaterial(defaultMaterial, wallMaterial, {
     friction: 0.0,
-    restitution: 0.5 // Balls bounce slightly off the invisible walls
+    restitution: 0.5 // Ball bounce off walls
 });
 world.addContactMaterial(wallContactMaterial);
 
-// Function to create a generic wall
-function createWall(mass, width, height, depth, x, y, z) {
-    const wallShape = new CANNON.Box(new CANNON.Vec3(width / 2, height / 2, depth / 2));
-    const wallBody = new CANNON.Body({ mass: mass, material: wallMaterial });
-    wallBody.addShape(wallShape);
-    wallBody.position.set(x, y, z);
-    world.addBody(wallBody);
-    return wallBody;
+// Physics Pitch
+const groundBody = new CANNON.Body({ mass: 0, shape: new CANNON.Plane(), material: defaultMaterial });
+groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
+world.addBody(groundBody);
+
+// Physics Player
+const playerBody = new CANNON.Body({
+    mass: 75, 
+    shape: new CANNON.Box(new CANNON.Vec3(0.5, 1, 0.5)),
+    position: new CANNON.Vec3(-5, 1, 0),
+    material: defaultMaterial
+});
+playerBody.fixedRotation = true; 
+playerBody.updateMassProperties();
+world.addBody(playerBody);
+
+// Physics Ball
+const ballBody = new CANNON.Body({
+    mass: 0.43, 
+    shape: new CANNON.Sphere(0.5),
+    position: new CANNON.Vec3(0, 5, 0),
+    material: defaultMaterial
+});
+world.addBody(ballBody);
+
+
+// ==========================================
+// 3. STADIUM BOUNDARIES & GOALS
+// ==========================================
+function createWall(width, height, depth, x, y, z) {
+    const shape = new CANNON.Box(new CANNON.Vec3(width / 2, height / 2, depth / 2));
+    const body = new CANNON.Body({ mass: 0, material: wallMaterial });
+    body.addShape(shape);
+    body.position.set(x, y, z);
+    world.addBody(body);
 }
 
-// Top Wall (North)
-createWall(0, 50, 10, 1, 0, 5, -15);
-// Bottom Wall (South)
-createWall(0, 50, 10, 1, 0, 5, 15);
-// Left Wall (West)
-createWall(0, 1, 10, 30, -25, 5, 0);
-// Right Wall (East)
-createWall(0, 1, 10, 30, 25, 5, 0);
+// 4 Outer Walls
+createWall(50, 10, 1, 0, 5, -15); // Top
+createWall(50, 10, 1, 0, 5, 15);  // Bottom
+createWall(1, 10, 30, -25, 5, 0); // Left
+createWall(1, 10, 30, 25, 5, 0);  // Right
+
+// Goal Generator
+function createGoal(xPosition) {
+    const postMat = new THREE.MeshBasicMaterial({ color: 0xffffff }); 
+    function addPost(px, py, pz, width, height, depth) {
+        const mesh = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), postMat);
+        mesh.position.set(px, py, pz);
+        scene.add(mesh);
+        
+        const body = new CANNON.Body({ mass: 0, material: wallMaterial });
+        body.addShape(new CANNON.Box(new CANNON.Vec3(width / 2, height / 2, depth / 2)));
+        body.position.set(px, py, pz);
+        world.addBody(body);
+    }
+    addPost(xPosition, 1.5, -3, 0.4, 3, 0.4);   // Left Post
+    addPost(xPosition, 1.5, 3, 0.4, 3, 0.4);    // Right Post
+    addPost(xPosition, 3.2, 0, 0.4, 0.4, 6.4);  // Crossbar
+}
+
+createGoal(-24); // Home Goal
+createGoal(24);  // Away Goal
 
 
-// --- 3. CONTROLS (Updated) ---
-// Added a space string " " to track the spacebar
+// ==========================================
+// 4. CONTROLS & SCORING LOGIC
+// ==========================================
 const keys = { w: false, a: false, s: false, d: false, " ": false };
 
 document.addEventListener('keydown', (e) => {
-    const key = e.key.toLowerCase();
-    if (keys.hasOwnProperty(key)) keys[key] = true;
+    if (keys.hasOwnProperty(e.key.toLowerCase())) keys[e.key.toLowerCase()] = true;
 });
-
 document.addEventListener('keyup', (e) => {
-    const key = e.key.toLowerCase();
-    if (keys.hasOwnProperty(key)) keys[key] = false;
+    if (keys.hasOwnProperty(e.key.toLowerCase())) keys[e.key.toLowerCase()] = false;
 });
 
+let scoreHome = 0;
+let scoreAway = 0;
+const scoreboardText = document.getElementById('scoreboard');
 
-// --- 4. THE GAME LOOP (Updated) ---
+function resetAfterGoal() {
+    scoreboardText.innerText = `HOME ${scoreHome} - ${scoreAway} AWAY`;
+    ballBody.position.set(0, 5, 0);
+    ballBody.velocity.set(0, 0, 0);
+    ballBody.angularVelocity.set(0, 0, 0);
+    playerBody.position.set(-5, 1, 0);
+    playerBody.velocity.set(0, 0, 0);
+}
+
+
+// ==========================================
+// 5. THE MAIN GAME LOOP
+// ==========================================
 const timeStep = 1 / 60;
 const speed = 8;
-const kickPower = 12; // Adjust this to make the shot harder or softer
+const kickPower = 12;
 
 function animate() {
     requestAnimationFrame(animate);
@@ -122,50 +155,40 @@ function animate() {
     // Player Movement
     playerBody.velocity.x = 0;
     playerBody.velocity.z = 0;
-    
     if (keys.w) playerBody.velocity.z = -speed;
     if (keys.s) playerBody.velocity.z = speed;
     if (keys.a) playerBody.velocity.x = -speed;
     if (keys.d) playerBody.velocity.x = speed;
     
-    // --- SHOOTING LOGIC ---
+    // Kicking Logic (Spacebar)
     if (keys[" "]) {
-        // 1. Check how far the player is from the ball
         const distance = playerBody.position.distanceTo(ballBody.position);
-        
-        // 2. If within 2 units, execute the kick
         if (distance < 2) {
-            // Calculate the exact direction from the player to the ball
-            const kickDirection = new CANNON.Vec3(
-                ballBody.position.x - playerBody.position.x,
-                0, 
-                ballBody.position.z - playerBody.position.z
+            const kickDir = new CANNON.Vec3(
+                ballBody.position.x - playerBody.position.x, 0, ballBody.position.z - playerBody.position.z
             );
-            
-            // Normalize keeps the vector length at 1, so diagonal kicks aren't stronger
-            kickDirection.normalize(); 
-            
-            // Create the impulse force (multiplying direction by power, and adding a little upward chip '4')
-            const impulse = new CANNON.Vec3(
-                kickDirection.x * kickPower, 
-                4, // Gives the ball a nice arc into the air
-                kickDirection.z * kickPower
-            );
-            
-            // Blast the ball!
+            kickDir.normalize(); 
+            const impulse = new CANNON.Vec3(kickDir.x * kickPower, 4, kickDir.z * kickPower);
             ballBody.applyImpulse(impulse, ballBody.position);
-            
-            // Prevent rapid-fire by forcing the player to release and re-press spacebar
-            keys[" "] = false; 
+            keys[" "] = false; // Require re-press to kick again
         }
     }
 
-    // Sync graphics
+    // Goal Detection
+    if (ballBody.position.x > 24 && Math.abs(ballBody.position.z) < 3) {
+        scoreHome++;
+        resetAfterGoal();
+    } else if (ballBody.position.x < -24 && Math.abs(ballBody.position.z) < 3) {
+        scoreAway++;
+        resetAfterGoal();
+    }
+
+    // Sync Graphics to Physics
     playerMesh.position.copy(playerBody.position);
     ballMesh.position.copy(ballBody.position);
     ballMesh.quaternion.copy(ballBody.quaternion); 
     
-    // Camera Tracking
+    // Dynamic Camera Tracking
     camera.position.x = playerMesh.position.x;
     camera.position.y = playerMesh.position.y + 8;
     camera.position.z = playerMesh.position.z + 10;
@@ -174,13 +197,12 @@ function animate() {
     renderer.render(scene, camera);
 }
 
-// Handle Window Resize
+// Window Resize Fix
 window.addEventListener('resize', () => {
     renderer.setSize(window.innerWidth, window.innerHeight);
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
 });
 
+// Start the game!
 animate();
-    
-    
