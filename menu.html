@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>FC Maxer - Club Dashboard</title>
+    <title>FC Maxer - INFINITY EDITION</title>
     <style>
         body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #0b0e11; color: white; display: flex; flex-direction: column; align-items: center; }
         .navbar { width: 100%; background: #16191e; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #e94560; box-sizing: border-box; }
@@ -26,9 +26,9 @@
 </head>
 <body>
     <div class="navbar">
-        <h1>FC MAXER</h1>
+        <h1>FC MAXER <span style="color:#e94560; font-size:12px">∞ EDITION</span></h1>
         <div class="stats-bar">
-            <span>🪙 <span id="c-val">0</span></span>
+            <span style="color:#ffd700">🪙 COINS: ∞</span>
             <span style="color:#00ff00">CHEM: <span id="chem">0</span></span>
         </div>
         <a href="index.html" class="btn play">⚽ PLAY MATCH</a>
@@ -41,7 +41,7 @@
     </div>
 
     <div id="st" class="pane active">
-        <button class="btn" style="background:#e94560; color:white; width:300px; font-size:20px" onclick="buy()">OPEN PRO PACK (100 🪙)</button>
+        <button class="btn" style="background:#e94560; color:white; width:300px; font-size:20px" onclick="buy()">OPEN FREE PACK (∞)</button>
         <div id="new-card" class="grid"></div>
     </div>
 
@@ -60,13 +60,14 @@
     </div>
 
     <script>
-        let c = parseInt(localStorage.getItem('c') || 1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000);
+        // Set coins to a massive number that never runs out
+        let c = 999999999; 
         let club = JSON.parse(localStorage.getItem('cl') || "[]");
-        const pool = [{n:"Yamal",r:99,t:"gold"},{n:"Vini",r:98,t:"gold"},{n:"Bellingham",r:99,t:"gold"},{n:"Rodri",r:98,t:"gold"},{n:"Mainoo",r:95,t:"gold"},{n:"Garnacho",r:80,t:"bronze"},{n:"Endrick",r:99,t:"gold"},{n:"Rookie",r:64,t:"bronze"}];
+        const pool = [{n:"Yamal",r:82,t:"gold"},{n:"Vini",r:91,t:"gold"},{n:"Bellingham",r:89,t:"gold"},{n:"Rodri",r:91,t:"gold"},{n:"Mainoo",r:78,t:"silver"},{n:"Garnacho",r:80,t:"silver"},{n:"Endrick",r:77,t:"silver"},{n:"Rookie",r:64,t:"bronze"}];
 
         function sync() {
-            localStorage.setItem('c', c); localStorage.setItem('cl', JSON.stringify(club));
-            document.getElementById('c-val').innerText = c;
+            localStorage.setItem('cl', JSON.stringify(club));
+            // Chem calculation remains same
             let chem = club.reduce((a, b) => a + (b.t === 'gold' ? 10 : 5), 0);
             document.getElementById('chem').innerText = Math.min(chem, 100);
         }
@@ -80,18 +81,17 @@
         }
 
         function buy() {
-            if(c < 0) return alert("Not enough coins!");
-            c -= 0;
+            // No coin check needed
             const p = {...pool[Math.floor(Math.random()*pool.length)], id: Date.now()};
             club.push(p);
             document.getElementById('new-card').innerHTML = card(p, false);
             sync();
         }
 
-        function sell(id) { club = club.filter(p => p.id !== id); c += 10000000000000000000000000000000000000000000; sync(); renderCl(); renderSq(); }
+        function sell(id) { club = club.filter(p => p.id !== id); sync(); renderCl(); renderSq(); }
 
         function card(p, s) {
-            return `<div class="card ${p.t}"><h2>${p.r}</h2><p><b>${p.n}</b></p>${s ? `<button class="sell" onclick="sell(${p.id})">SELL</button>` : ''}</div>`;
+            return `<div class="card ${p.t}"><h2>${p.r}</h2><p><b>${p.n}</b></p>${s ? `<button class="sell" onclick="sell(${p.id})">REMOVE</button>` : ''}</div>`;
         }
 
         function renderCl() { document.getElementById('full').innerHTML = club.map(p => card(p, true)).join(''); }
@@ -102,7 +102,7 @@
             document.getElementById('mid').innerHTML = s.slice(3,6).map(p => card(p, false)).join('');
             document.getElementById('def').innerHTML = s.slice(6,10).map(p => card(p, false)).join('');
             document.getElementById('gk').innerHTML = s.slice(10,11).map(p => card(p, false)).join('');
-            document.getElementById('bench').innerHTML = s.slice(11, 18).map(p => card(p, false)).join('');
+            document.getElementById('bench').innerHTML = s.slice(11, 25).map(p => card(p, false)).join('');
         }
         sync();
     </script>
